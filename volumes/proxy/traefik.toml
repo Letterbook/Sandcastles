@@ -1,0 +1,24 @@
+[entryPoints]
+  [entryPoints.web]
+    address = ":80"
+  [entryPoints.web.http.redirections.entryPoint]
+    to = "websecure"
+    scheme = "https"
+  [entryPoints.websecure]
+    address = ":443"
+
+[api]
+  dashboard = true
+
+[certificatesResolvers.smallstep.acme]
+  caServer = "https://root-ca" # acme-staging-v02.api.letsencrypt.org/directory"
+  storage = "acme.json"
+  [certificatesResolvers.smallstep.acme.httpChallenge]
+    entryPoint = "web"
+
+[providers.docker]
+  watch = true
+  network = "fediverse"
+
+[providers.file]
+  filename = "traefik_dynamic.toml"

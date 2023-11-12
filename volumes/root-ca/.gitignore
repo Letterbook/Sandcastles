@@ -1,0 +1,5 @@
+# Ignore everything in this dir, except this file
+# This dir will contain secrets that you will need to trust on your 
+*
+!.gitignore
+!readme.md

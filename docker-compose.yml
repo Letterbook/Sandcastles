@@ -1,0 +1,35 @@
+version: '3'
+name: sandcastles
+
+services:
+  root-ca:
+    image: smallstep/step-ca:0.25.0
+    volumes:
+      - './volumes/root-ca:/home/step'
+    environment:
+      - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
+      - DOCKER_STEPCA_INIT_DNS_NAMES=localhost,root-ca
+      - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true
+    ports:
+      - "9000:9000"
+  
+  proxy:
+  # Replace with traefik
+    image: busybox:1.36
+    command: '/bin/sh -c "trap : TERM INT; sleep infinity & wait"'
+    networks:
+      default:
+      fediverse:
+        aliases:
+          - mastodon.castle
+          - firefish.castle
+          - letterbook.castle
+  
+  client:
+    image: busybox:1.36
+    networks:
+      - fediverse
+
+networks:
+  fediverse:
+  
