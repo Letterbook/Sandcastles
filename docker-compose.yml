@@ -10,6 +10,7 @@ services:
       - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
       - DOCKER_STEPCA_INIT_DNS_NAMES=root-ca.castle,root-ca,localhost
       - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true
+      - DOCKER_STEPCA_INIT_ACME=true
     ports:
       - "9000:9000"
     networks:
@@ -18,7 +19,9 @@ services:
           - root-ca.castle
   
   proxy:
-    image: traefik:v2.5
+    image: traefik-trust-root-ca
+    build: 
+      dockerfile: proxy.Dockerfile
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./volumes/proxy/:/etc/traefik/
