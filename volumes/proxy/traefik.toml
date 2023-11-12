@@ -11,7 +11,7 @@
   dashboard = true
 
 [certificatesResolvers.smallstep.acme]
-  caServer = "https://root-ca" # acme-staging-v02.api.letsencrypt.org/directory"
+  caServer = "https://root-ca.castle:9000" # acme-staging-v02.api.letsencrypt.org/directory"
   storage = "acme.json"
   [certificatesResolvers.smallstep.acme.httpChallenge]
     entryPoint = "web"
@@ -21,4 +21,4 @@
   network = "fediverse"
 
 [providers.file]
-  filename = "traefik_dynamic.toml"
+  filename = "/etc/traefik/traefik_dynamic.toml"

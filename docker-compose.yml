@@ -8,28 +8,42 @@ services:
       - './volumes/root-ca:/home/step'
     environment:
       - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
-      - DOCKER_STEPCA_INIT_DNS_NAMES=localhost,root-ca
+      - DOCKER_STEPCA_INIT_DNS_NAMES=root-ca.castle,root-ca,localhost
       - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true
     ports:
       - "9000:9000"
-  
-  proxy:
-  # Replace with traefik
-    image: busybox:1.36
-    command: '/bin/sh -c "trap : TERM INT; sleep infinity & wait"'
     networks:
       default:
-      fediverse:
         aliases:
-          - mastodon.castle
-          - firefish.castle
-          - letterbook.castle
+          - root-ca.castle
   
-  client:
-    image: busybox:1.36
+  proxy:
+    image: traefik:v2.5
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./volumes/proxy/:/etc/traefik/
+    ports:
+      - '80:80'
+      - '443:443'
     networks:
-      - fediverse
+      default:
+        aliases:
+          - dashboard.castle # the traefik monitoring dashboard
+          - host.castle # proxy to a service running on the docker host
+  
+  fingerprint: # get the fingerprint of the CA root certificate, so you can add it to system trust stores
+    profiles:
+      - trust
+    image: smallstep/step-cli:0.25.0
+    volumes:
+      - './volumes/root-ca/certs:/home/step/certs:ro'
+    command: 
+      - step
+      - certificate
+      - fingerprint
+      - /home/step/certs/root_ca.crt
 
 networks:
+  default:
   fediverse:
   

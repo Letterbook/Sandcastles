@@ -16,3 +16,60 @@ This provides a root certificate authority which can issue SSL certificates to a
 Traefik serves as a reverse proxy, handling *all* of the federated traffick between services. It does this so that it can also manage their SSL certificates and connections. Traefik will automatically provision these certificates.
 
 # Getting Started
+
+## Prerequisites
+
+You will need a docker run time and a docker client that supports docker compose. The easiest way to do that is to just install docker desktop. It's *probably* also possible to use podman, and podman compose, but for now that is untested. Let us know if you have success with it.
+
+You may also want to install the step cli. This isn't strictly necessary, but it will make it a lot easier to manage your certificates, and to add your new internal root CA as a trusted CA on your local computer.
+
+## Steps
+
+### 1. Clone this repo
+```shell
+git clone https://github.com/Letterbook/Sandcastles.git
+cd Sandcastles
+```
+
+### 2. Initialize the internal root CA
+```shell
+docker compose run root-ca
+```
+
+This will configure the internal Smallstep CA, and will generate a number of secrets that you should maintain. Make a note of the administraive username and password that are printed to the terminal. You may need them in the future, and they cannot be recovered later. If you need to regenerate any of these secrets, you can delete everything in the `./volumes/root-ca/` except the `.gitignore` file.
+
+### 3. Run everything  
+This will re-build the service images with built-in trust for your new internal root CA. This allows all of the services to federate with each other with no additional modifications. The re-build is only necessary once, or whenever a service is updated. You can run only the services you want by specifying their overlay files as extra `-f` args to `docker compose up`
+```shell
+docker compose up -d -f docker-compose.yml -f mastodon.castle.yml # etc
+```
+
+If you need to rebuild these images because you regenerated the root CA secrets, you can do so by adding the `--build` and `--force-recreate` flags to the compose command.
+```shell
+docker-compose up --build --force-recreate -f docker-compose.yml -f mastodon.castle.yml # etc
+```
+
+At this point, you have a functioning sandbox full of fedi services that can all federate with each other. To make this maximally useful to you for local development of your own fedi service, continue on to the following optional steps.
+
+### 4. Add .castle domains to your local hosts file (Optional)  
+Each of the castles provided by this project is configured to serve from it's own .castle domain (ie. mastodon.castle, letterbook.castle, etc). To interact (and federate) with them from your host (outside of any docker container) you should add these to your system's hosts file.
+```ini
+# C:\Windows\System32\drivers\etc\hosts
+# OR
+# /etc/hosts
+127.0.0.1   root-ca.castle
+127.0.0.1   dashboard.castle
+127.0.0.1   mastodon.castle
+127.0.0.1   letterbook.castle 
+#etc
+```
+
+### 5. Add your internal CA as a trusted CA on your host (Optional)  
+This requires having the `step` cli installed on your host machine. After this step, your computer will trust SSL certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. This is a mild security risk. In step 1, you generated a private key to be used by this CA to sign those SSL certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. Keep that key safe.
+```shell
+./trust.bash
+```
+
+### 6. Remove the trusted CA (Optional)  
+If you need to revoke trust in the Sandcastles CA, you can use [Certificate Manager](https://learn.microsoft.com/en-us/dotnet/framework/tools/certmgr-exe-certificate-manager-tool) on Windows.  
+The linux process is distro specific, try [update-ca-certificates on debian based](https://manpages.ubuntu.com/manpages/xenial/man8/update-ca-certificates.8.html), and [update-ca-trust on red hat based](https://www.redhat.com/sysadmin/configure-ca-trust-list) distributions.
