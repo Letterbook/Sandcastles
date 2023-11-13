@@ -3,6 +3,7 @@ name: sandcastles
 
 services:
   root-ca:
+    container_name: root_ca.castle
     image: smallstep/step-ca:0.25.0
     volumes:
       - './volumes/root-ca:/home/step'
@@ -19,9 +20,10 @@ services:
           - root-ca.castle
   
   proxy:
+    container_name: dashboard.castle
     labels:
       - traefik.enable=false
-    image: traefik-trust-sandcastle-ca
+    image: traefik-sandcastle
     build: 
       dockerfile: proxy.Dockerfile
     volumes:

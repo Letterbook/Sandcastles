@@ -1,6 +1,18 @@
+# Copyright VMware, Inc.
+# SPDX-License-Identifier: APACHE-2.0
+# Configuration adapted from
+# https://github.com/bitnami/containers/blob/main/bitnami/mastodon/docker-compose.yml
+
+# must be used as an overlay for the main docker-compose file. Ex
+# docker-compose -f docker-compose.yml -f mastodon.castle.yml up
+
+# defaults
+# admin: user@bitnami.org
+# password: bitnami1
 
 services:
   mastodon:
+    container_name: mastodon.castle
     labels:
       - traefik.http.routers.mastodon.rule=Host(`mastodon.castle`)
       - traefik.http.routers.mastodon.tls=true
@@ -10,13 +22,11 @@ services:
       - mastodon_db
       - mastodon_es
       - mastodon_redis
-    image: mastodon-trust-sandcastle-ca
+    image: mastodon-sandcastle
     build:
       dockerfile: mastodon.Dockerfile
     volumes:
       - 'mastodon_data:/bitnami/mastodon'
-    ports:
-      - '3080:3000'
     networks:
       - mastodon
       - fediverse
