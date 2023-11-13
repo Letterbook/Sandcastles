@@ -7,13 +7,13 @@
 The Letterbook Sandcastles project offers an integration and federation test sandbox for developers of fediverse software. The goal is to make it easy to set up local instances of most fediverse servers, which can all federate with each other, with minimal necessary configuration. This includes your own software, running on your local machine.
 
 # How it Works
-This is accomplished by running them all in a docker compose project, along with some supporting infrastructure.
+This is accomplished by running them all in a docker compose project, along with some supporting infrastructure to provision and use SSL certificates.
 
 ## Smallstep Certificate Authority
-This provides a root certificate authority which can issue SSL certificates to all of the other servers managed by the project. These servers are preconfigured to trust this CA, and the certificates will be renewed or re-issued as needed.
+This provides a root certificate authority which can issue SSL certificates to all of the other servers managed by the project. These servers are preconfigured to trust this CA, and the certificates will be provisioned as needed.
 
 ## Traefik Reverse Proxy
-Traefik serves as a reverse proxy, handling *all* of the federated traffick between services. It does this so that it can also manage their SSL certificates and connections. Traefik will automatically provision these certificates.
+Traefik serves as a reverse proxy, handling *all* of the federated traffick between services. It does this so that it can also manage their SSL certificates and connections. Traefik will automatically request or renew the certificates from Smallstep.
 
 # Getting Started
 
@@ -41,12 +41,16 @@ This will configure the internal Smallstep CA, and will generate a number of sec
 ### 3. Run everything  
 This will re-build the service images with built-in trust for your new internal root CA. This allows all of the services to federate with each other with no additional modifications. The re-build is only necessary once, or whenever a service is updated. You can run only the services you want by specifying their overlay files as extra `-f` args to `docker compose up`
 ```shell
-docker compose up -d -f docker-compose.yml -f mastodon.castle.yml # etc
+# add other *.castle.yml as needed
+docker compose -f docker-compose.yml -f mastodon.castle.yml \
+    up -d
 ```
 
 If you need to rebuild these images because you regenerated the root CA secrets, you can do so by adding the `--build` and `--force-recreate` flags to the compose command.
 ```shell
-docker-compose up --build --force-recreate -f docker-compose.yml -f mastodon.castle.yml # etc
+# add other *.castle.yml as needed
+docker compose -f docker-compose.yml -f mastodon.castle.yml \
+    up --build --force-recreate -d
 ```
 
 At this point, you have a functioning sandbox full of fedi services that can all federate with each other. To make this maximally useful to you for local development of your own fedi service, continue on to the following optional steps.
@@ -59,6 +63,7 @@ Each of the castles provided by this project is configured to serve from it's ow
 # /etc/hosts
 127.0.0.1   root-ca.castle
 127.0.0.1   dashboard.castle
+127.0.0.1   host.castle
 127.0.0.1   mastodon.castle
 127.0.0.1   letterbook.castle 
 #etc

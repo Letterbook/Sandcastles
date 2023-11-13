@@ -1,0 +1,117 @@
+
+services:
+  mastodon:
+    labels:
+      - traefik.http.routers.mastodon.rule=Host(`mastodon.castle`)
+      - traefik.http.routers.mastodon.tls=true
+      - traefik.http.routers.mastodon.tls.certresolver=smallstep
+      - traefik.port=3000
+    depends_on:
+      - mastodon_db
+      - mastodon_es
+      - mastodon_redis
+    image: mastodon-trust-sandcastle-ca
+    build:
+      dockerfile: mastodon.Dockerfile
+    volumes:
+      - 'mastodon_data:/bitnami/mastodon'
+    ports:
+      - '3080:3000'
+    networks:
+      - mastodon
+      - fediverse
+      - default
+    environment:
+      - MASTODON_DATABASE_HOST=mastodon_db
+      - MASTODON_REDIS_HOST=mastodon_redis
+      - MASTODON_ELASTICSEARCH_HOST=mastodon_es
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MASTODON_MODE=web
+      - MASTODON_DATABASE_PASSWORD=bitnami1
+      - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
+      - LOCAL_DOMAIN=mastodon.castle
+      - WEB_DOMAIN=mastodon.castle
+  
+  mastodon-streaming:
+    depends_on:
+      - mastodon
+    image: docker.io/bitnami/mastodon:4
+    networks:
+      - mastodon
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MASTODON_MODE=streaming
+      - MASTODON_DATABASE_PASSWORD=bitnami1
+      - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
+      - MASTODON_REDIS_HOST=mastodon_redis
+  mastodon-sidekiq:
+    depends_on:
+      - mastodon
+    image: docker.io/bitnami/mastodon:4
+    volumes:
+      - 'mastodon_data:/bitnami/mastodon'
+    networks:
+      - mastodon
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+      - MASTODON_MODE=sidekiq
+      - MASTODON_DATABASE_PASSWORD=bitnami1
+      - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
+      - MASTODON_REDIS_HOST=mastodon_redis
+      - MASTODON_DATABASE_HOST=mastodon_db
+  mastodon_db:
+    image: docker.io/bitnami/postgresql:16
+    networks:
+      - mastodon
+    volumes:
+      - 'mastodon_db_data:/bitnami/postgresql'
+    environment:
+      - POSTGRESQL_DATABASE=bitnami_mastodon
+      - POSTGRESQL_USERNAME=bn_mastodon
+      - POSTGRESQL_PASSWORD=bitnami1
+  mastodon_redis:
+    image: docker.io/bitnami/redis:7.0
+    volumes:
+      - 'redis_data:/bitnami/redis'
+    networks:
+      - mastodon
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+  mastodon_es:
+    image: docker.io/bitnami/elasticsearch:8
+    networks:
+      - mastodon
+    volumes:
+      - 'elasticsearch_data:/bitnami/elasticsearch/data'
+    environment:
+      - ELASTICSEARCH_ENABLE_SECURITY=true
+      - ELASTICSEARCH_SKIP_TRANSPORT_TLS=true
+      - ELASTICSEARCH_ENABLE_REST_TLS=false
+      - ELASTICSEARCH_PASSWORD=bitnami123
+
+  # Configure docker's internal DNS
+  # Traefik will provide SSL termination and proxy back to mastodon
+  proxy:
+    networks:
+      default:
+        aliases:
+          - mastodon.castle
+      fediverse:
+        aliases:
+          - mastodon.castle
+
+volumes:
+  mastodon_db_data:
+    driver: local
+  minio_data:
+    driver: local
+  redis_data:
+    driver: local
+  elasticsearch_data:
+    driver: local
+  mastodon_data:
+    driver: local
+
+networks:
+  mastodon:
+    internal: true

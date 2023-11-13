@@ -19,7 +19,9 @@ services:
           - root-ca.castle
   
   proxy:
-    image: traefik-trust-root-ca
+    labels:
+      - traefik.enable=false
+    image: traefik-trust-sandcastle-ca
     build: 
       dockerfile: proxy.Dockerfile
     volumes:
