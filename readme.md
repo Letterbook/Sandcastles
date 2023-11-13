@@ -21,7 +21,7 @@ Traefik serves as a reverse proxy, handling *all* of the federated traffick betw
 
 You will need a docker run time and a docker client that supports docker compose. The easiest way to do that is to just install docker desktop. It's *probably* also possible to use podman, and podman compose, but for now that is untested. Let us know if you have success with it.
 
-You may also want to install the step cli. This isn't strictly necessary, but it will make it a lot easier to manage your certificates, and to add your new internal root CA as a trusted CA on your local computer.
+You may also want to [install the `step cli`](https://smallstep.com/docs/step-cli/installation/). This isn't strictly necessary, but it will make it a lot easier to manage your certificates, and to add your new internal root CA as a trusted CA on your local computer.
 
 ## Steps
 
