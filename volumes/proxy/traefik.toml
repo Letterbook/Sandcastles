@@ -11,7 +11,7 @@
   dashboard = true
 
 [certificatesResolvers.smallstep.acme]
-  caServer = "https://root-ca.castle:9000/acme/acme/directory" # acme-staging-v02.api.letsencrypt.org/directory"
+  caServer = "https://root-ca.castle:9000/acme/acme/directory"
   storage = "acme.json"
   [certificatesResolvers.smallstep.acme.httpChallenge]
     entryPoint = "web"

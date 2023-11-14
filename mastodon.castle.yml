@@ -43,6 +43,8 @@ services:
       - WEB_DOMAIN=mastodon.castle
   
   mastodon-streaming:
+    labels:
+      - traefik.enable=false
     depends_on:
       - mastodon
     image: docker.io/bitnami/mastodon:4
@@ -55,6 +57,8 @@ services:
       - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
       - MASTODON_REDIS_HOST=mastodon_redis
   mastodon-sidekiq:
+    labels:
+      - traefik.enable=false
     depends_on:
       - mastodon
     image: docker.io/bitnami/mastodon:4
@@ -70,6 +74,8 @@ services:
       - MASTODON_REDIS_HOST=mastodon_redis
       - MASTODON_DATABASE_HOST=mastodon_db
   mastodon_db:
+    labels:
+      - traefik.enable=false
     image: docker.io/bitnami/postgresql:16
     networks:
       - mastodon
@@ -80,6 +86,8 @@ services:
       - POSTGRESQL_USERNAME=bn_mastodon
       - POSTGRESQL_PASSWORD=bitnami1
   mastodon_redis:
+    labels:
+      - traefik.enable=false
     image: docker.io/bitnami/redis:7.0
     volumes:
       - 'redis_data:/bitnami/redis'
@@ -88,6 +96,8 @@ services:
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
   mastodon_es:
+    labels:
+      - traefik.enable=false
     image: docker.io/bitnami/elasticsearch:8
     networks:
       - mastodon
