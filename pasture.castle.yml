@@ -1,8 +1,6 @@
 
 services:
   pasture_one_actor:
-    labels:
-      - traefik.enable=false
     image: pasture-sandcastles
     build:
       dockerfile: ./pasture.Dockerfile
@@ -12,14 +10,11 @@ services:
     networks:
       pasture:
   pasture_runner:
-    labels:
-      - traefik.enable=false
     image: pasture-sandcastles
     build:
       dockerfile: ./pasture.Dockerfile
     volumes: 
       - ./volumes/pasture:/opt
-      - ./work:/work
     working_dir: /work
     depends_on:
       - pasture_one_actor
@@ -29,8 +24,6 @@ services:
     networks:
       pasture:
   pasture_http_signature:
-    labels:
-      - traefik.enable=false
     image: pasture-sandcastles
     build:
       dockerfile: ./pasture.Dockerfile
@@ -40,11 +33,13 @@ services:
     networks:
       pasture:
   pasture_verify_actor:
+    container_name: actor.pasture.castle
     labels:
       - traefik.http.routers.pasture.rule=Host(`actor.pasture.castle`)
       - traefik.http.routers.pasture.tls=true
       - traefik.http.routers.pasture.tls.certresolver=smallstep
       - traefik.port=80
+      - traefik.enable=true
     image: pasture-sandcastles
     build:
       dockerfile: ./pasture.Dockerfile

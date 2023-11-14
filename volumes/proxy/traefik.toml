@@ -19,6 +19,7 @@
 [providers.docker]
   watch = true
   network = "fediverse"
+  exposedByDefault = false
 
 [providers.file]
   filename = "/etc/traefik/traefik_dynamic.toml"
