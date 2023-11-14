@@ -33,7 +33,7 @@ cd Sandcastles
 
 ### 2. Initialize the internal root CA
 ```shell
-docker compose run root-ca
+docker compose up root-ca -d
 ```
 
 This will configure the internal Smallstep CA, and will generate a number of secrets that you should maintain. Make a note of the administraive username and password that are printed to the terminal. You may need them in the future, and they cannot be recovered later. If you need to regenerate any of these secrets, you can delete everything in the `./volumes/root-ca/` except the `.gitignore` file.
@@ -78,3 +78,7 @@ This requires having the `step` cli installed on your host machine. After this s
 ### 6. Remove the trusted CA (Optional)  
 If you need to revoke trust in the Sandcastles CA, you can use [Certificate Manager](https://learn.microsoft.com/en-us/dotnet/framework/tools/certmgr-exe-certificate-manager-tool) on Windows.  
 The linux process is distro specific, try [update-ca-certificates on debian based](https://manpages.ubuntu.com/manpages/xenial/man8/update-ca-certificates.8.html), and [update-ca-trust on red hat based](https://www.redhat.com/sysadmin/configure-ca-trust-list) distributions.
+
+# Contributing
+
+Please contribute! There's so much fedi software out there! If you build or host some sort of fedi server, it would be so helpful for you to share some configurations that make it easy to spin up a test instance of that software in the sandbox. In the absence of a reference implementation or a test suite, this kind of integration sandbox might be our best resource for building new apps and improving cross-app federation support.
