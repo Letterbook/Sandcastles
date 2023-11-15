@@ -17,6 +17,7 @@ services:
       - traefik.http.routers.mastodon.rule=Host(`mastodon.castle`)
       - traefik.http.routers.mastodon.tls=true
       - traefik.http.routers.mastodon.tls.certresolver=smallstep
+      - traefik.http.services.mastodon-sandcastles.loadBalancer.healthCheck.path=/health
       - traefik.port=3000
       - traefik.enable=true
     depends_on:
@@ -42,6 +43,8 @@ services:
       - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
       - LOCAL_DOMAIN=mastodon.castle
       - WEB_DOMAIN=mastodon.castle
+      - ALLOWED_PRIVATE_ADDRESSES=172.0.0.0/8,192.0.0.0/8
+      - RAILS_ENV=development
   
   mastodon-streaming:
     depends_on:
