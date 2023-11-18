@@ -18,6 +18,7 @@ services:
       default:
         aliases:
           - root-ca.castle
+    restart: unless-stopped
   
   proxy:
     container_name: dashboard.castle
@@ -37,7 +38,29 @@ services:
         aliases:
           - dashboard.castle # the traefik monitoring dashboard
           - host.castle # proxy to a service running on the docker host
+          - httpbin.castle # debug connectivity issues
+    restart: unless-stopped
   
+  httpbin:
+    labels:
+    - traefik.http.routers.httpbin.rule=Host(`httpbin.castle`)
+    - traefik.http.routers.httpbin.tls=true
+    - traefik.http.routers.httpbin.tls.certresolver=smallstep
+    # - traefik.http.middlewares.setForwards.headers.sslProxyHeaders.X-Forwarded-Proto=https
+    - traefik.port=80
+    - traefik.enable=true
+    container_name: httpbin.castle
+    image: kennethreitz/httpbin
+    expose: 
+      - 80
+    networks:
+      - default
+      - fediverse
+    restart: unless-stopped
+
+  
+  ## Utilities. Not services; they are intended to exit.
+
   fingerprint: # get the fingerprint of the CA root certificate, so you can add it to system trust stores
     profiles:
       - trust

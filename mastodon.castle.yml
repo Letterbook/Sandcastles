@@ -45,11 +45,14 @@ services:
       - WEB_DOMAIN=mastodon.castle
       - ALLOWED_PRIVATE_ADDRESSES=172.0.0.0/8,192.0.0.0/8
       - RAILS_ENV=development
+      # - RAILS_ENV=production
   
   mastodon-streaming:
     depends_on:
       - mastodon
-    image: docker.io/bitnami/mastodon:4
+    image: mastodon-sandcastle
+    build:
+      dockerfile: mastodon.Dockerfile
     networks:
       - mastodon
     environment:
@@ -58,14 +61,19 @@ services:
       - MASTODON_DATABASE_PASSWORD=bitnami1
       - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
       - MASTODON_REDIS_HOST=mastodon_redis
+  
   mastodon-sidekiq:
     depends_on:
       - mastodon
-    image: docker.io/bitnami/mastodon:4
+    image: mastodon-sandcastle
+    build:
+      dockerfile: mastodon.Dockerfile
     volumes:
       - 'mastodon_data:/bitnami/mastodon'
     networks:
       - mastodon
+      - fediverse
+      - default
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
       - MASTODON_MODE=sidekiq
@@ -73,30 +81,35 @@ services:
       - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
       - MASTODON_REDIS_HOST=mastodon_redis
       - MASTODON_DATABASE_HOST=mastodon_db
+      - ALLOWED_PRIVATE_ADDRESSES=172.0.0.0/8,192.0.0.0/8
+      - RAILS_ENV=development
+
   mastodon_db:
     image: docker.io/bitnami/postgresql:16
     networks:
       - mastodon
     volumes:
-      - 'mastodon_db_data:/bitnami/postgresql'
+      - 'mastodon_data_db:/bitnami/postgresql'
     environment:
       - POSTGRESQL_DATABASE=bitnami_mastodon
       - POSTGRESQL_USERNAME=bn_mastodon
       - POSTGRESQL_PASSWORD=bitnami1
+  
   mastodon_redis:
     image: docker.io/bitnami/redis:7.0
     volumes:
-      - 'redis_data:/bitnami/redis'
+      - 'mastodon_data_redis:/bitnami/redis'
     networks:
       - mastodon
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
+  
   mastodon_es:
     image: docker.io/bitnami/elasticsearch:8
     networks:
       - mastodon
     volumes:
-      - 'elasticsearch_data:/bitnami/elasticsearch/data'
+      - 'mastodon_data_es:/bitnami/elasticsearch/data'
     environment:
       - ELASTICSEARCH_ENABLE_SECURITY=true
       - ELASTICSEARCH_SKIP_TRANSPORT_TLS=true
@@ -115,13 +128,13 @@ services:
           - mastodon.castle
 
 volumes:
-  mastodon_db_data:
+  mastodon_data_db:
     driver: local
-  minio_data:
+  mastodon_data_minio:
     driver: local
-  redis_data:
+  mastodon_data_redis:
     driver: local
-  elasticsearch_data:
+  mastodon_data_es:
     driver: local
   mastodon_data:
     driver: local

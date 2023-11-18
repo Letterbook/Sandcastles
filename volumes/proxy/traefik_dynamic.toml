@@ -15,11 +15,14 @@
 
 [http.routers.dockerhost]
     rule = "Host(`host.castle`)"
-    entrypoints = ["websecure"]
+    entrypoints = ["websecure", "web"]
     service = "dockerhost"
     [http.routers.dockerhost.tls]
-    certResolver = "smallstep"
+      certResolver = "smallstep"
 
 [http.services.dockerhost]
-    [http.services.dockerhost.loadbalancer.servers]
-        url = "http://host.docker.internal:5127"
+    [http.services.dockerhost.loadBalancer.healthCheck]
+      path = "/swagger/v1/swagger.json"
+      port = 5127
+    [[http.services.dockerhost.loadBalancer.servers]]
+      url = "http://host.docker.internal:5127"
