@@ -1,0 +1,2 @@
+# Run periodic tasks for Hubzilla
+su -s /bin/bash www-data -c "cd /var/www/html; /usr/bin/php Zotlabs/Daemon/Master.php Cron > /dev/null 2>&1"

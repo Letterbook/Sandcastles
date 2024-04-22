@@ -1,0 +1,104 @@
+# Service definition for running Hubzilla in the Sandcatsles environment.
+#
+# Include with docker compose like this:
+#
+#   % docker compose -f docker-compose.yml -f hubzilla.castle.yml -f ... up -d
+#
+# The first time you visit https://hubzilla.castle, you will have to set up the
+# instance. Check that all checks on the first screen passes, and fill in the
+# database credentials in the next one.
+#
+# Use the following settings for the database:
+#
+# - Database Server Name: hubzilla_db
+# - Database port: 0
+# - Database Login Name: postgres
+# - Database Login Password: hubzilla
+# - Database Name: postgres
+# - Database Type: PostgreSQL
+#
+# In the next screen, fill in an email for the site admin, and select a timezone.
+#
+# Ignore the warning that you have to set up a cron job, the dockerfile does
+# that for you.
+#
+# Next register a user that will be the admin of the instance. Use whatever
+# name you want, but the email address must be the same as you set in the
+# previous step. As the system is not able to send emails, you have to extract
+# the registration token manually, using the below command:
+#
+#   % docker compose exec hubzilla_db psql postgres postgres -c \
+#     "select reg_hash from register where reg_email='hubzilla@example.com';"
+#
+# (Use the email address of the user you registered.)
+#
+# Paste the returned `reg_hash` into the verification token field in the next
+# screen, and click "Verify".
+#
+# Hubzilla should now be up and running!
+#
+services:
+  hubzilla:
+    container_name: hubzilla.castle
+    labels:
+      - traefik.http.routers.hubzilla.rule=Host(`hubzilla.castle`)
+      - traefik.http.routers.hubzilla.tls=true
+      - traefik.http.routers.hubzilla.tls.certresolver=smallstep
+      - traefik.port=3042
+      - traefik.enable=true
+    depends_on:
+      - hubzilla_db
+      - hubzilla_fpm
+    image: nginx:stable-alpine
+    volumes:
+      - 'hubzilla:/var/www/html'
+      - './volumes/hubzilla/nginx.conf:/etc/nginx/conf.d/hubzilla.conf:ro'
+    networks:
+      - hubzilla
+      - fediverse
+      - default
+    ports:
+      - '3042:443'
+
+  hubzilla_fpm:
+    depends_on:
+      - hubzilla_db
+    build:
+      dockerfile: hubzilla.Dockerfile
+    volumes:
+      - 'hubzilla:/var/www/html'
+      - './volumes/hubzilla/fpm.conf:/usr/local/etc/php-fpm.d/www.conf:ro'
+    networks:
+      - hubzilla
+      - fediverse
+
+
+  hubzilla_db:
+    image: postgres:latest
+    networks:
+      - hubzilla
+    volumes:
+      - 'hubzilla_db_data:/var/db/postgresql'
+    environment:
+      - POSTGRES_PASSWORD=hubzilla
+
+  # Configure docker's internal DNS
+  # Traefik will provide SSL termination and proxy back to hubzilla
+  proxy:
+    networks:
+      default:
+        aliases:
+          - hubzilla.castle
+      fediverse:
+        aliases:
+          - hubzilla.castle
+
+volumes:
+  hubzilla:
+    driver: local
+  hubzilla_db_data:
+    driver: local
+
+networks:
+  hubzilla:
+    internal: true
