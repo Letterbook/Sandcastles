@@ -22,7 +22,7 @@
 
 [http.services.dockerhost]
     [http.services.dockerhost.loadBalancer.healthCheck]
-      path = "/swagger/v1/swagger.json"
+      path = "/healthz"
       port = 5127
     [[http.services.dockerhost.loadBalancer.servers]]
       url = "http://host.docker.internal:5127"
