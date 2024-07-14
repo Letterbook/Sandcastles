@@ -1,0 +1,8 @@
+[Unit]
+Description=Redirect tcp port 80 to 8080 with redir
+
+[Service]
+ExecStart=/bin/redir -sn -I http 127.0.0.1:80 127.0.0.1:8080
+
+[Install]
+WantedBy=multi-user.target

@@ -33,24 +33,81 @@ cd Sandcastles
 
 ### 2. Initialize the internal root CA
 ```shell
-docker compose up root-ca -d
+docker compose -f bootstrap.yml up root-ca -d
+docker compose -f bootstrap.yml cp root-ca:/home/step/templates volumes/root-ca/
+docker compose -f bootstrap.yml cp root-ca:/home/step/secrets volumes/root-ca/
+docker compose -f bootstrap.yml cp root-ca:/home/step/db volumes/root-ca/
+docker compose -f bootstrap.yml cp root-ca:/home/step/config volumes/root-ca/
+docker compose -f bootstrap.yml cp root-ca:/home/step/certs volumes/root-ca/
+docker compose -f bootstrap.yml down
 ```
 
-This will configure the internal Smallstep CA, and will generate a number of secrets that you should maintain. Make a note of the administraive username and password that are printed to the terminal. You may need them in the future, and they cannot be recovered later. If you need to regenerate any of these secrets, you can delete everything in the `./volumes/root-ca/` except the `.gitignore` file.
+And on *nix, set the file permissions so containers can access them:
+```shell
+find volumes/root-ca -type d -exec chmod 755 {} +
+chmod ugo+rw volumes/root-ca/* -R
+```
 
-### 3. Run everything  
+This will configure the internal Smallstep CA, and will generate a number of secrets that you should maintain. If you need to regenerate any of these secrets, you can delete everything in the `./volumes/root-ca/` except the `.gitignore` file.
+
+### 3.0. Redirect ports (*nix only)
+To have host names (and thus ActivityPub IDs) that are the same on the host as in docker, you need to get to the exposed proxy service on default ports (80 and 443). These are privileged ports, and ideally Docker can't bind to them. It's possible to give Docker permissions to do that. Or you can redirect localhost -> localhost TCP traffic to different ports. To do that, first, install `redir`:
+
+```shell
+sudo dnf install redir
+# OR
+sudo apt install redir
+```
+
+Then install the provided systemd unit files:
+
+```shell
+sudo cp units/* /etc/systemd/system/
+```
+
+And start them:
+
+```shell
+sudo systemctl start redir80 redir443 
+```
+
+And stop them when you're done testing:
+
+```shell
+sudo systemctl stop redir80 redir443
+```
+
+### 3.1 Env file
+
+Create a local env file for docker-compose
+
+```shell
+./env.bash
+```
+
+### 3.2. Run everything  
 This will re-build the service images with built-in trust for your new internal root CA. This allows all of the services to federate with each other with no additional modifications. The re-build is only necessary once, or whenever a service is updated. You can run only the services you want by specifying their overlay files as extra `-f` args to `docker compose up`
 ```shell
 # add other *.castle.yml as needed
-docker compose -f docker-compose.yml -f mastodon.castle.yml \
+docker compose -f docker-compose.yml -f mastodon.castle.yml -f sharkey.castle.yml \
     up -d
 ```
 
 If you need to rebuild these images because you regenerated the root CA secrets, you can do so by adding the `--build` and `--force-recreate` flags to the compose command.
 ```shell
 # add other *.castle.yml as needed
-docker compose -f docker-compose.yml -f mastodon.castle.yml \
+docker compose -f docker-compose.yml -f mastodon.castle.yml -f sharkey.castle.yml \
     up --build --force-recreate -d
+```
+
+#### Windows
+
+On Windows, also include the `windows.yml` overlay file.
+
+```shell
+docker compose -f docker-compose.yml -f windows.yml -f mastodon.castle.yml -f sharkey.castle.yml \
+  up -d
+# etc
 ```
 
 At this point, you have a functioning sandbox full of fedi services that can all federate with each other. To make this maximally useful to you for local development of your own fedi service, continue on to the following optional steps.
@@ -82,3 +139,5 @@ The linux process is distro specific, try [update-ca-certificates on debian base
 # Contributing
 
 Please contribute! There's so much fedi software out there! If you build or host some sort of fedi server, it would be so helpful for you to share some configurations that make it easy to spin up a test instance of that software in the sandbox. In the absence of a reference implementation or a test suite, this kind of integration sandbox might be our best resource for building new apps and improving cross-app federation support.
+
+I no longer have ready access to a Windows machine. I'll do what I can to maintain Windows compatibility, but help is appreciated.

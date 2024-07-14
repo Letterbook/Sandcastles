@@ -1,0 +1,119 @@
+# Copyright © 2014-2024 syuilo and contributors
+# Configuration adapted from
+# https://activitypub.software/TransFem-org/Sharkey/-/blob/7dfe9087b2580e97ea0eb990c94e98624b76c9de/docker-compose_example.yml
+
+# must be used as an overlay for the main docker-compose file. Ex
+# docker-compose -f docker-compose.yml -f sharkey.castle.yml up
+
+services:
+  sharkey:
+    container_name: sharkey.castle
+    labels:
+      - traefik.http.routers.sharkey.rule=Host(`sharkey.castle`)
+      - traefik.http.routers.sharkey.tls=true
+      - traefik.http.routers.sharkey.tls.certresolver=smallstep
+      - traefik.http.services.sharkey-sandcastles.loadBalancer.healthCheck.path=/health
+      - traefik.port=3000
+      - traefik.enable=true
+      - traefik.docker.network=fediverse
+    image: registry.activitypub.software/transfem-org/sharkey:2024.5.1
+    environment:
+      - NODE_EXTRA_CA_CERTS=/usr/local/share/ca-certificates/root_ca.crt
+    restart: always
+    links:
+      - sharkey_db
+      - sharkey_redis
+    depends_on:
+      sharkey_db:
+        condition: service_healthy
+      sharkey_redis:
+        condition: service_healthy
+    ports:
+      - "3000"
+    networks:
+      - shonk
+      - fediverse
+      - default
+    volumes:
+      - sharkey_data:/sharkey/files
+      - ./volumes/sharkey/:/sharkey/.config:ro
+      - ./volumes/root-ca/certs/root_ca.crt:/usr/local/share/ca-certificates/root_ca.crt
+
+  sharkey_redis:
+    restart: always
+    image: redis:7-alpine
+    networks:
+      - shonk
+    volumes:
+      - sharkey_redis:/data
+    healthcheck:
+      test: "redis-cli ping"
+      interval: 5s
+      retries: 20
+
+  sharkey_db:
+    restart: always
+    image: postgres:15-alpine
+    networks:
+      - shonk
+    env_file:
+      - ./volumes/sharkey/docker.env
+    volumes:
+      - sharkey_db:/var/lib/postgresql/data
+    healthcheck:
+      test: "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"
+      interval: 5s
+      retries: 20
+
+#  mcaptcha:
+#    restart: always
+#    image: mcaptcha/mcaptcha:latest
+#    networks:
+#      internal_network:
+#      external_network:
+#        aliases:
+#          - localhost
+#    ports:
+#      - 7493:7493
+#    env_file:
+#      - .config/docker.env
+#    environment:
+#      PORT: 7493
+#      MCAPTCHA_redis_URL: "redis://mcaptcha_redis/"
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#      mcaptcha_redis:
+#        condition: service_healthy
+#
+#  mcaptcha_redis:
+#    image: mcaptcha/cache:latest
+#    networks:
+#      - internal_network
+#    healthcheck:
+#      test: "redis-cli ping"
+#      interval: 5s
+#      retries: 20
+
+#  meilisearch:
+#    restart: always
+#    image: getmeili/meilisearch:v1.3.4
+#    environment:
+#      - MEILI_NO_ANALYTICS=true
+#      - MEILI_ENV=production
+#      - MEILI_MASTER_KEY=ChangeThis
+#    networks:
+#      - shonk
+#    volumes:
+#      - ./meili_data:/meili_data
+
+volumes:
+  sharkey_data:
+    driver: local
+  sharkey_db:
+    driver: local
+  sharkey_redis:
+    driver: local
+
+networks:
+  shonk:

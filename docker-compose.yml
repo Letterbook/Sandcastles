@@ -1,10 +1,10 @@
-version: '3'
+version: '3.5'
 name: sandcastles
 
 services:
   root-ca:
     container_name: root_ca.castle
-    image: smallstep/step-ca:0.25.0
+    image: smallstep/step-ca:0.27.1
     volumes:
       - './volumes/root-ca:/home/step'
     environment:
@@ -12,6 +12,7 @@ services:
       - DOCKER_STEPCA_INIT_DNS_NAMES=root-ca.castle,root-ca,localhost
       - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true
       - DOCKER_STEPCA_INIT_ACME=true
+      - DOCKER_STEPCA_INIT_PASSWORD=capassword
     ports:
       - "9000:9000"
     networks:
@@ -31,15 +32,27 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./volumes/proxy/:/etc/traefik/
     ports:
-      - '80:80'
-      - '443:443'
+      - '8080:80'
+      - '8443:443'
     networks:
+      traefik:
       default:
         aliases:
           - dashboard.castle # the traefik monitoring dashboard
           - host.castle # proxy to a service running on the docker host
           - httpbin.castle # debug connectivity issues
     restart: unless-stopped
+  
+  dockerproxy:
+    environment:
+      CONTAINERS: 1
+    image: tecnativa/docker-socket-proxy
+    networks:
+      - traefik
+    ports:
+      - 2375
+    volumes:
+      - '${DOCKER_PATH}:/var/run/docker.sock'
   
   httpbin:
     labels:
@@ -76,4 +89,5 @@ services:
 networks:
   default:
   fediverse:
+  traefik:
   

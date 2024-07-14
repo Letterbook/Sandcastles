@@ -1,0 +1,20 @@
+version: '3.5'
+name: sandcastles
+
+services:
+  root-ca:
+    container_name: root_ca.castle
+    image: smallstep/step-ca:0.27.1
+    environment:
+      - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
+      - DOCKER_STEPCA_INIT_DNS_NAMES=root-ca.castle,root-ca,localhost
+      - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true
+      - DOCKER_STEPCA_INIT_ACME=true
+      - DOCKER_STEPCA_INIT_PASSWORD=capassword
+    ports:
+      - "9000:9000"
+    networks:
+      default:
+        aliases:
+          - root-ca.castle
+    restart: unless-stopped

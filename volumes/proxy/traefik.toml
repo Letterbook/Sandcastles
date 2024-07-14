@@ -18,7 +18,8 @@
 
 [providers.docker]
   watch = true
-  network = "fediverse"
+  network = "traefik"
+  endpoint = "tcp://dockerproxy:2375"
   exposedByDefault = false
 
 [providers.file]

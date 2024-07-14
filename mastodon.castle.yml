@@ -20,6 +20,7 @@ services:
       - traefik.http.services.mastodon-sandcastles.loadBalancer.healthCheck.path=/health
       - traefik.port=3000
       - traefik.enable=true
+      - traefik.docker.network=fediverse
     depends_on:
       - mastodon_db
       - mastodon_es

@@ -1,0 +1,8 @@
+[Unit]
+Description=Redirect tcp port 443 to 8443 with redir
+
+[Service]
+ExecStart=/bin/redir -sn -I https 127.0.0.1:443 127.0.0.1:8443
+
+[Install]
+WantedBy=multi-user.target
