@@ -2,6 +2,11 @@ version: '3.5'
 name: sandcastles
 
 services:
+  tools:
+    image: jonlabelle/network-tools
+    profiles:
+    - tools
+
   root-ca:
     container_name: root_ca.castle
     image: smallstep/step-ca:0.27.1
@@ -42,19 +47,10 @@ services:
           - host.castle # proxy to a service running on the docker host
           - httpbin.castle # debug connectivity issues
     restart: unless-stopped
-  
-  dockerproxy:
-    environment:
-      CONTAINERS: 1
-    image: tecnativa/docker-socket-proxy
-    networks:
-      - traefik
-    ports:
-      - 2375
-    volumes:
-      - '${DOCKER_PATH}:/var/run/docker.sock'
-  
+    
   httpbin:
+    profiles:
+    - tools
     labels:
     - traefik.http.routers.httpbin.rule=Host(`httpbin.castle`)
     - traefik.http.routers.httpbin.tls=true
@@ -71,6 +67,18 @@ services:
       - fediverse
     restart: unless-stopped
 
+  host-proxy:
+    image: docker.io/alpine/socat
+    volumes:
+    - ./sockets/:/sockets/
+    ports:
+    - 3000
+    command:
+    - '-d'
+    - '-d'
+    - tcp-listen:3000,reuseaddr,retry,fork
+    - unix:/sockets/host.sock,reuseaddr
+    restart: always
   
   ## Utilities. Not services; they are intended to exit.
 

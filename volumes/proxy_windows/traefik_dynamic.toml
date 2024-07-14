@@ -23,5 +23,6 @@
 [http.services.dockerhost]
     [http.services.dockerhost.loadBalancer.healthCheck]
       path = "/healthz"
+      port = 5127
     [[http.services.dockerhost.loadBalancer.servers]]
-      url = "http://host-proxy:3000"
+      url = "http://host.docker.internal:5127"

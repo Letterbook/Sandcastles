@@ -19,7 +19,7 @@ Traefik serves as a reverse proxy, handling *all* of the federated traffick betw
 
 ## Prerequisites
 
-You will need a docker run time and a docker client that supports docker compose. The easiest way to do that is to just install docker desktop. It's *probably* also possible to use podman, and podman compose, but for now that is untested. Let us know if you have success with it.
+You will need a docker run time and a docker client that supports docker compose. The easiest way to do that is to just install docker desktop. It's also confirmed to work with (rootless) podman compose. If you want to use a rootless container runtime, podman seems to work better than docker.
 
 You may also want to [install the `step cli`](https://smallstep.com/docs/step-cli/installation/). This isn't strictly necessary, but it will make it a lot easier to manage your certificates, and to add your new internal root CA as a trusted CA on your local computer.
 
@@ -50,7 +50,17 @@ chmod ugo+rw volumes/root-ca/* -R
 
 This will configure the internal Smallstep CA, and will generate a number of secrets that you should maintain. If you need to regenerate any of these secrets, you can delete everything in the `./volumes/root-ca/` except the `.gitignore` file.
 
-### 3.0. Redirect ports (*nix only)
+### 3 Prepare your host system
+
+#### Provide docker compose env vars
+
+Create a local env file for docker compose
+
+```shell
+./env.bash
+```
+
+#### Redirect ports (*nix only)
 To have host names (and thus ActivityPub IDs) that are the same on the host as in docker, you need to get to the exposed proxy service on default ports (80 and 443). These are privileged ports, and ideally Docker can't bind to them. It's possible to give Docker permissions to do that. Or you can redirect localhost -> localhost TCP traffic to different ports. To do that, first, install `redir`:
 
 ```shell
@@ -71,21 +81,21 @@ And start them:
 sudo systemctl start redir80 redir443 
 ```
 
-And stop them when you're done testing:
+You can stop them when you're done testing:
 
 ```shell
 sudo systemctl stop redir80 redir443
 ```
 
-### 3.1 Env file
-
-Create a local env file for docker-compose
+### 4. Create a unix socket to forward to your host (*nix only)
 
 ```shell
-./env.bash
+export SANDCASTLE_PORT=5127 # any port you like
+socat unix-listen:sockets/host.sock,mode=777,fork tcp:127.0.0.1:$SANDCASTLE_PORT
 ```
 
-### 3.2. Run everything  
+
+### 5. Run everything  
 This will re-build the service images with built-in trust for your new internal root CA. This allows all of the services to federate with each other with no additional modifications. The re-build is only necessary once, or whenever a service is updated. You can run only the services you want by specifying their overlay files as extra `-f` args to `docker compose up`
 ```shell
 # add other *.castle.yml as needed
@@ -131,6 +141,13 @@ This requires having the `step` cli installed on your host machine. After this s
 ```shell
 ./trust.bash
 ```
+
+#### Alternatively
+You don't have to configure system-wide trust for the sandcastle private CA. Many stacks have a way to provide a custom CA bundle that can be used to validate certificates on HTTP requests. For example:
+
+- Nodejs        
+  `export NODE_EXTRA_CA_CERTS=/path/to/volumes/root-ca/certs/root_ca.crt`
+ 
 
 ### 6. Remove the trusted CA (Optional)  
 If you need to revoke trust in the Sandcastles CA, you can use [Certificate Manager](https://learn.microsoft.com/en-us/dotnet/framework/tools/certmgr-exe-certificate-manager-tool) on Windows.  
