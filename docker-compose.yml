@@ -48,6 +48,17 @@ services:
           - httpbin.castle # debug connectivity issues
     restart: unless-stopped
     
+  dockerproxy:
+    environment:
+      CONTAINERS: 1
+    image: tecnativa/docker-socket-proxy
+    networks:
+      - traefik
+    ports:
+      - 2375
+    volumes:
+      - '${DOCKER_PATH}:/var/run/docker.sock'
+  
   httpbin:
     profiles:
     - tools
