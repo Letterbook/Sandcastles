@@ -25,9 +25,11 @@ services:
       - mastodon_db
       - mastodon_es
       - mastodon_redis
-    image: mastodon-sandcastle
+    image: localhost/mastodon-sandcastle
     build:
       dockerfile: mastodon.Dockerfile
+      tags:
+        - localhost/mastodon-sandcastle
     volumes:
       - 'mastodon_data:/bitnami/mastodon'
     networks:
@@ -48,13 +50,16 @@ services:
       - ALLOWED_PRIVATE_ADDRESSES=127.0.0.1,172.0.0.0/8,192.0.0.0/8
       - RAILS_ENV=development
       # - RAILS_ENV=production
+    restart: unless-stopped
   
   mastodon-streaming:
     depends_on:
       - mastodon
-    image: mastodon-sandcastle
+    image: localhost/mastodon-sandcastle
     build:
       dockerfile: mastodon.Dockerfile
+      tags:
+        - localhost/mastodon-sandcastle
     networks:
       - mastodon
     environment:
@@ -63,13 +68,16 @@ services:
       - MASTODON_DATABASE_PASSWORD=bitnami1
       - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
       - MASTODON_REDIS_HOST=mastodon_redis
+    restart: unless-stopped
   
   mastodon-sidekiq:
     depends_on:
       - mastodon
-    image: mastodon-sandcastle
+    image: localhost/mastodon-sandcastle
     build:
       dockerfile: mastodon.Dockerfile
+      tags:
+        - localhost/mastodon-sandcastle
     volumes:
       - 'mastodon_data:/bitnami/mastodon'
     networks:
@@ -88,6 +96,7 @@ services:
       - MASTODON_HTTPS_ENABLED=true
       - ALLOWED_PRIVATE_ADDRESSES=127.0.0.1,172.0.0.0/8,192.0.0.0/8
       - RAILS_ENV=development
+    restart: unless-stopped
 
   mastodon_db:
     image: docker.io/bitnami/postgresql:16
@@ -99,6 +108,7 @@ services:
       - POSTGRESQL_DATABASE=bitnami_mastodon
       - POSTGRESQL_USERNAME=bn_mastodon
       - POSTGRESQL_PASSWORD=bitnami1
+    restart: unless-stopped
   
   mastodon_redis:
     image: docker.io/bitnami/redis:7.0
@@ -108,6 +118,7 @@ services:
       - mastodon
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
+    restart: unless-stopped
   
   mastodon_es:
     image: docker.io/bitnami/elasticsearch:8
@@ -120,6 +131,7 @@ services:
       - ELASTICSEARCH_SKIP_TRANSPORT_TLS=true
       - ELASTICSEARCH_ENABLE_REST_TLS=false
       - ELASTICSEARCH_PASSWORD=bitnami123
+    restart: unless-stopped
 
   # Configure docker's internal DNS
   # Traefik will provide SSL termination and proxy back to mastodon
@@ -146,4 +158,5 @@ volumes:
 
 networks:
   mastodon:
-    internal: true
+  default:
+  fediverse:

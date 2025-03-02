@@ -18,8 +18,7 @@
 
 [providers.docker]
   watch = true
-  network = "traefik"
-  endpoint = "tcp://dockerproxy:2375"
+  endpoint = "unix:///var/run/docker.sock"
   exposedByDefault = false
 
 [providers.file]

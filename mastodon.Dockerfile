@@ -1,4 +1,4 @@
-FROM smallstep/step-cli:0.25.0 AS step-cli
+FROM docker.io/smallstep/step-cli:0.25.0 AS step-cli
 
 FROM docker.io/bitnami/mastodon:4
 
