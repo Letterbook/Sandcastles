@@ -12,16 +12,3 @@
   service = "api@internal"
   [http.routers.api.tls]
     certResolver = "smallstep"
-
-[http.routers.dockerhost]
-    rule = "Host(`host.castle`)"
-    entrypoints = ["websecure", "web"]
-    service = "dockerhost"
-    [http.routers.dockerhost.tls]
-      certResolver = "smallstep"
-
-[http.services.dockerhost]
-    [http.services.dockerhost.loadBalancer.healthCheck]
-      path = "/healthz"
-    [[http.services.dockerhost.loadBalancer.servers]]
-      url = "http://host-proxy:3000"

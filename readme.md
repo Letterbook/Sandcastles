@@ -51,7 +51,7 @@ chmod ugo+rw volumes/root-ca/* -R
 
 This will configure the internal Smallstep CA, and will generate a number of secrets that you should maintain. If you need to regenerate any of these secrets, you can delete everything in the `./volumes/root-ca/` except the `.gitignore` file.
 
-### 3 Prepare your host system
+### 3. Prepare your host system
 
 #### Provide docker compose env vars
 
@@ -61,42 +61,7 @@ Create a local env file for docker compose
 ./env.bash
 ```
 
-#### Redirect ports (*nix only)
-To have host names (and thus ActivityPub IDs) that are the same on the host as in docker, you need to get to the exposed proxy service on default ports (80 and 443). These are privileged ports, and ideally Docker can't bind to them. It's possible to give Docker permissions to do that. Or you can redirect localhost -> localhost TCP traffic to different ports. To do that, first, install `redir`:
-
-```shell
-sudo dnf install redir
-# OR
-sudo apt install redir
-```
-
-Then install the provided systemd unit files:
-
-```shell
-sudo cp units/* /etc/systemd/system/
-```
-
-And start them:
-
-```shell
-sudo systemctl start redir80 redir443 
-```
-
-You can stop them when you're done testing:
-
-```shell
-sudo systemctl stop redir80 redir443
-```
-
-### 4. Create a unix socket to forward to your host (*nix only)
-
-```shell
-export SANDCASTLE_PORT=5127 # any port you like
-socat unix-listen:sockets/host.sock,mode=777,fork tcp:127.0.0.1:$SANDCASTLE_PORT
-```
-
-
-### 5. Run everything  
+### 4. Run everything  
 This will re-build the service images with built-in trust for your new internal root CA. This allows all of the services to federate with each other with no additional modifications. The re-build is only necessary once, or whenever a service is updated. You can run only the services you want by specifying their overlay files as extra `-f` args to `docker compose up`
 ```shell
 # add other *.castle.yml as needed
@@ -111,16 +76,6 @@ docker compose -f docker-compose.yml -f mastodon.castle.yml -f sharkey.castle.ym
     up --build --force-recreate -d
 ```
 
-#### Windows
-
-On Windows, also include the `windows.yml` overlay file.
-
-```shell
-docker compose -f docker-compose.yml -f windows.yml -f mastodon.castle.yml -f sharkey.castle.yml \
-  up -d
-# etc
-```
-
 At this point, you have a functioning sandbox full of fedi services that can all federate with each other. To make this maximally useful to you for local development of your own fedi service, continue on to the following optional steps.
 
 ### 4. Add .castle domains to your local hosts file (Optional)  
@@ -129,18 +84,16 @@ Each of the castles provided by this project is configured to serve from it's ow
 # C:\Windows\System32\drivers\etc\hosts
 # OR
 # /etc/hosts
-127.0.0.1   root-ca.castle
 127.0.0.1   dashboard.castle
-127.0.0.1   host.castle
 127.0.0.1   mastodon.castle
 127.0.0.1   letterbook.castle 
 #etc
 ```
 
 ### 5. Add your internal CA as a trusted CA on your host (Optional)  
-This requires having the `step` cli installed on your host machine. After this step, your computer will trust SSL certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. This is a mild security risk. In step 1, you generated a private key to be used by this CA to sign those SSL certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. Keep that key safe.
+This requires having the [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/) installed on your host machine. After this step, your computer will trust SSL certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. This is a mild security risk. In step 1, you generated a private key to be used by this CA to sign those SSL certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. Keep that key safe.
 ```shell
-./trust.bash
+step certificate install --all volumes/root-ca/certs/root_ca.crt
 ```
 
 #### Alternatively
@@ -150,9 +103,12 @@ You don't have to configure system-wide trust for the sandcastle private CA. Man
   `export NODE_EXTRA_CA_CERTS=/path/to/volumes/root-ca/certs/root_ca.crt`
  
 
-### 6. Remove the trusted CA (Optional)  
-If you need to revoke trust in the Sandcastles CA, you can use [Certificate Manager](https://learn.microsoft.com/en-us/dotnet/framework/tools/certmgr-exe-certificate-manager-tool) on Windows.  
-The linux process is distro specific, try [update-ca-certificates on debian based](https://manpages.ubuntu.com/manpages/xenial/man8/update-ca-certificates.8.html), and [update-ca-trust on red hat based](https://www.redhat.com/sysadmin/configure-ca-trust-list) distributions.
+### 6. Remove the trusted CA (Optional)
+If you need to revoke trust in the Sandcastles CA, you can use [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/uninstall/) again.
+
+```shell
+step certificate uninstall --all volumes/root-ca/certs/root_ca.crt
+```
 
 # Contributing
 
