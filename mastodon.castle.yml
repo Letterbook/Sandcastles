@@ -25,9 +25,11 @@ services:
       - mastodon_db
       - mastodon_es
       - mastodon_redis
-    image: mastodon-sandcastle
+    image: localhost/mastodon-sandcastle
     build:
       dockerfile: mastodon.Dockerfile
+      tags:
+        - localhost/mastodon-sandcastle
     volumes:
       - 'mastodon_data:/bitnami/mastodon'
     networks:
@@ -52,9 +54,11 @@ services:
   mastodon-streaming:
     depends_on:
       - mastodon
-    image: mastodon-sandcastle
+    image: localhost/mastodon-sandcastle
     build:
       dockerfile: mastodon.Dockerfile
+      tags:
+        - localhost/mastodon-sandcastle
     networks:
       - mastodon
     environment:
@@ -67,9 +71,11 @@ services:
   mastodon-sidekiq:
     depends_on:
       - mastodon
-    image: mastodon-sandcastle
+    image: localhost/mastodon-sandcastle
     build:
       dockerfile: mastodon.Dockerfile
+      tags:
+        - localhost/mastodon-sandcastle
     volumes:
       - 'mastodon_data:/bitnami/mastodon'
     networks:

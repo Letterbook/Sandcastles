@@ -34,11 +34,12 @@ cd Sandcastles
 ### 2. Initialize the internal root CA
 ```shell
 docker compose -f bootstrap.yml up root-ca -d
-docker compose -f bootstrap.yml cp root-ca:/home/step/templates volumes/root-ca/
-docker compose -f bootstrap.yml cp root-ca:/home/step/secrets volumes/root-ca/
-docker compose -f bootstrap.yml cp root-ca:/home/step/db volumes/root-ca/
-docker compose -f bootstrap.yml cp root-ca:/home/step/config volumes/root-ca/
-docker compose -f bootstrap.yml cp root-ca:/home/step/certs volumes/root-ca/
+export ROOT_CA_CASTLE=$(docker compose -f bootstrap.yml ps -q)
+docker cp $ROOT_CA_CASTLE:/home/step/templates volumes/root-ca/
+docker cp $ROOT_CA_CASTLE:/home/step/secrets volumes/root-ca/
+docker cp $ROOT_CA_CASTLE:/home/step/db volumes/root-ca/
+docker cp $ROOT_CA_CASTLE:/home/step/config volumes/root-ca/
+docker cp $ROOT_CA_CASTLE:/home/step/certs volumes/root-ca/
 docker compose -f bootstrap.yml down
 ```
 

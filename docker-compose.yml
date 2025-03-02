@@ -3,13 +3,13 @@ name: sandcastles
 
 services:
   tools:
-    image: jonlabelle/network-tools
+    image: docker.io/jonlabelle/network-tools
     profiles:
     - tools
 
   root-ca:
     container_name: root_ca.castle
-    image: smallstep/step-ca:0.27.1
+    image: docker.io/smallstep/step-ca:0.27.1
     volumes:
       - './volumes/root-ca:/home/step'
     environment:
@@ -30,9 +30,11 @@ services:
     container_name: dashboard.castle
     labels:
       - traefik.enable=false
-    image: traefik-sandcastle
+    image: localhost/traefik-sandcastle
     build: 
       dockerfile: proxy.Dockerfile
+      tags:
+        - localhost/traefik-sandcastle
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./volumes/proxy/:/etc/traefik/
@@ -51,7 +53,7 @@ services:
   dockerproxy:
     environment:
       CONTAINERS: 1
-    image: tecnativa/docker-socket-proxy
+    image: docker.io/tecnativa/docker-socket-proxy
     networks:
       - traefik
     ports:
@@ -70,7 +72,7 @@ services:
     - traefik.port=80
     - traefik.enable=true
     container_name: httpbin.castle
-    image: kennethreitz/httpbin
+    image: docker.io/kennethreitz/httpbin
     expose: 
       - 80
     networks:
@@ -96,7 +98,7 @@ services:
   fingerprint: # get the fingerprint of the CA root certificate, so you can add it to system trust stores
     profiles:
       - trust
-    image: smallstep/step-cli:0.25.0
+    image: docker.io/smallstep/step-cli:0.25.0
     volumes:
       - './volumes/root-ca/certs:/home/step/certs:ro'
     command: 
