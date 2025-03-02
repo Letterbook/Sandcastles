@@ -2,16 +2,14 @@ version: '3.5'
 name: sandcastles
 
 services:
-  tools:
+  network-tools:
     image: docker.io/jonlabelle/network-tools
-    profiles:
-    - tools
 
   root-ca:
     container_name: root_ca.castle
     image: docker.io/smallstep/step-ca:0.27.1
     volumes:
-      - './volumes/root-ca:/home/step'
+      - './volumes/root-ca:/home/step:z'
     environment:
       - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
       - DOCKER_STEPCA_INIT_DNS_NAMES=root-ca.castle,root-ca,localhost
@@ -30,36 +28,26 @@ services:
     container_name: dashboard.castle
     labels:
       - traefik.enable=false
-    image: localhost/traefik-sandcastle
+    image: localhost/traefik-sandcastle:latest
     build: 
       dockerfile: proxy.Dockerfile
       tags:
-        - localhost/traefik-sandcastle
+        - localhost/traefik-sandcastle:latest
+    security_opt:
+      - label=type:container_runtime_t
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./volumes/proxy/:/etc/traefik/
+      - '${DOCKER_PATH}:/var/run/docker.sock:z'
+      - './volumes/proxy/:/etc/traefik/:z'
     ports:
       - '8080:80'
       - '8443:443'
     networks:
-      traefik:
       default:
         aliases:
           - dashboard.castle # the traefik monitoring dashboard
           - host.castle # proxy to a service running on the docker host
           - httpbin.castle # debug connectivity issues
     restart: unless-stopped
-    
-  dockerproxy:
-    environment:
-      CONTAINERS: 1
-    image: docker.io/tecnativa/docker-socket-proxy
-    networks:
-      - traefik
-    ports:
-      - 2375
-    volumes:
-      - '${DOCKER_PATH}:/var/run/docker.sock'
   
   httpbin:
     profiles:
@@ -79,19 +67,6 @@ services:
       - default
       - fediverse
     restart: unless-stopped
-
-  host-proxy:
-    image: docker.io/alpine/socat
-    volumes:
-    - ./sockets/:/sockets/
-    ports:
-    - 3000
-    command:
-    - '-d'
-    - '-d'
-    - tcp-listen:3000,reuseaddr,retry,fork
-    - unix:/sockets/host.sock,reuseaddr
-    restart: always
   
   ## Utilities. Not services; they are intended to exit.
 
@@ -110,5 +85,3 @@ services:
 networks:
   default:
   fediverse:
-  traefik:
-  
