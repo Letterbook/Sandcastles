@@ -12,7 +12,6 @@
 
 services:
   mastodon:
-    container_name: mastodon.castle
     labels:
       - traefik.http.routers.mastodon.rule=Host(`mastodon.castle`)
       - traefik.http.routers.mastodon.tls=true
@@ -23,7 +22,6 @@ services:
       - traefik.docker.network=fediverse
     depends_on:
       - mastodon_db
-      - mastodon_es
       - mastodon_redis
     image: localhost/mastodon-sandcastle
     build:
@@ -31,22 +29,20 @@ services:
       tags:
         - localhost/mastodon-sandcastle
     volumes:
-      - 'mastodon_data:/bitnami/mastodon'
+      - mastodon_data_web
     networks:
       - mastodon
-      - fediverse
       - default
-    environment:
+    environment: &mastodon_env
       - MASTODON_DATABASE_HOST=mastodon_db
       - MASTODON_REDIS_HOST=mastodon_redis
-      - MASTODON_ELASTICSEARCH_HOST=mastodon_es
       - ALLOW_EMPTY_PASSWORD=yes
       - MASTODON_MODE=web
       - MASTODON_DATABASE_PASSWORD=bitnami1
-      - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
       - LOCAL_DOMAIN=mastodon.castle
       - MASTODON_WEB_DOMAIN=mastodon.castle
       - MASTODON_HTTPS_ENABLED=true
+      - MASTODON_ELASTICSEARCH_ENABLEd=false
       - ALLOWED_PRIVATE_ADDRESSES=127.0.0.1,172.0.0.0/8,192.0.0.0/8
       - RAILS_ENV=development
       # - RAILS_ENV=production
@@ -62,12 +58,7 @@ services:
         - localhost/mastodon-sandcastle
     networks:
       - mastodon
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - MASTODON_MODE=streaming
-      - MASTODON_DATABASE_PASSWORD=bitnami1
-      - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
-      - MASTODON_REDIS_HOST=mastodon_redis
+    environment: *mastodon_env
     restart: unless-stopped
   
   mastodon-sidekiq:
@@ -79,23 +70,11 @@ services:
       tags:
         - localhost/mastodon-sandcastle
     volumes:
-      - 'mastodon_data:/bitnami/mastodon'
+      - mastodon_data_web
     networks:
       - mastodon
-      - fediverse
       - default
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
-      - MASTODON_MODE=sidekiq
-      - MASTODON_DATABASE_PASSWORD=bitnami1
-      - MASTODON_ELASTICSEARCH_HOST=mastodon_es
-      - MASTODON_ELASTICSEARCH_PASSWORD=bitnami123
-      - MASTODON_REDIS_HOST=mastodon_redis
-      - MASTODON_DATABASE_HOST=mastodon_db
-      - MASTODON_WEB_DOMAIN=mastodon.castle
-      - MASTODON_HTTPS_ENABLED=true
-      - ALLOWED_PRIVATE_ADDRESSES=127.0.0.1,172.0.0.0/8,192.0.0.0/8
-      - RAILS_ENV=development
+    environment: *mastodon_env
     restart: unless-stopped
 
   mastodon_db:
@@ -111,27 +90,14 @@ services:
     restart: unless-stopped
   
   mastodon_redis:
-    image: docker.io/bitnami/redis:7.0
-    volumes:
-      - 'mastodon_data_redis:/bitnami/redis'
-    networks:
-      - mastodon
+    image: docker.io/redis:7.4-alpine
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
-    restart: unless-stopped
-  
-  mastodon_es:
-    image: docker.io/bitnami/elasticsearch:8
+    volumes:
+      - 'mastodon_data_redis:/data'
     networks:
       - mastodon
-    volumes:
-      - 'mastodon_data_es:/bitnami/elasticsearch/data'
-    environment:
-      - ELASTICSEARCH_ENABLE_SECURITY=true
-      - ELASTICSEARCH_SKIP_TRANSPORT_TLS=true
-      - ELASTICSEARCH_ENABLE_REST_TLS=false
-      - ELASTICSEARCH_PASSWORD=bitnami123
-    restart: unless-stopped
+    restart: 'no'
 
   # Configure docker's internal DNS
   # Traefik will provide SSL termination and proxy back to mastodon
@@ -140,20 +106,13 @@ services:
       default:
         aliases:
           - mastodon.castle
-      fediverse:
-        aliases:
-          - mastodon.castle
 
 volumes:
   mastodon_data_db:
     driver: local
-  mastodon_data_minio:
-    driver: local
   mastodon_data_redis:
     driver: local
-  mastodon_data_es:
-    driver: local
-  mastodon_data:
+  mastodon_data_web:
     driver: local
 
 networks:

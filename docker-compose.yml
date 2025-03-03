@@ -65,23 +65,7 @@ services:
       - 80
     networks:
       - default
-      - fediverse
     restart: unless-stopped
-  
-  ## Utilities. Not services; they are intended to exit.
-
-  fingerprint: # get the fingerprint of the CA root certificate, so you can add it to system trust stores
-    profiles:
-      - trust
-    image: docker.io/smallstep/step-cli:0.25.0
-    volumes:
-      - './volumes/root-ca/certs:/home/step/certs:ro'
-    command: 
-      - step
-      - certificate
-      - fingerprint
-      - /home/step/certs/root_ca.crt
 
 networks:
   default:
-  fediverse:

@@ -18,6 +18,7 @@
 
 [providers.docker]
   watch = true
+  network = "default"
   endpoint = "unix:///var/run/docker.sock"
   exposedByDefault = false
 
