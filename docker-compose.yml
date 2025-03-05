@@ -3,10 +3,12 @@ name: sandcastles
 
 services:
   network-tools:
+    networks:
+      - default 
     image: docker.io/jonlabelle/network-tools
+    command: curl https://httpbin.castle
 
   root-ca:
-    container_name: root_ca.castle
     image: docker.io/smallstep/step-ca:0.27.1
     volumes:
       - './volumes/root-ca:/home/step:z'
@@ -14,7 +16,7 @@ services:
       - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
       - DOCKER_STEPCA_INIT_DNS_NAMES=root-ca.castle,root-ca,localhost
       - DOCKER_STEPCA_INIT_REMOTE_MANAGEMENT=true
-      - DOCKER_STEPCA_INIT_ACME=true
+      - DOCKER_STEPCA_INIT_ACME=false
       - DOCKER_STEPCA_INIT_PASSWORD=capassword
     ports:
       - "9000:9000"
@@ -24,10 +26,7 @@ services:
           - root-ca.castle
     restart: unless-stopped
   
-  proxy:
-    container_name: dashboard.castle
-    labels:
-      - traefik.enable=false
+  'proxy.castle':
     image: localhost/traefik-sandcastle:latest
     build: 
       dockerfile: proxy.Dockerfile
@@ -38,20 +37,16 @@ services:
     volumes:
       - '${DOCKER_PATH}:/var/run/docker.sock:z'
       - './volumes/proxy/:/etc/traefik/:z'
-    ports:
-      - '8080:80'
-      - '8443:443'
     networks:
       default:
         aliases:
-          - dashboard.castle # the traefik monitoring dashboard
-          - host.castle # proxy to a service running on the docker host
-          - httpbin.castle # debug connectivity issues
+          - httpbin.castle 
+    ports:
+      - '8080:80'
+      - '8443:443'
     restart: unless-stopped
   
   httpbin:
-    profiles:
-    - tools
     labels:
     - traefik.http.routers.httpbin.rule=Host(`httpbin.castle`)
     - traefik.http.routers.httpbin.tls=true
@@ -59,12 +54,9 @@ services:
     # - traefik.http.middlewares.setForwards.headers.sslProxyHeaders.X-Forwarded-Proto=https
     - traefik.port=80
     - traefik.enable=true
-    container_name: httpbin.castle
     image: docker.io/kennethreitz/httpbin
-    expose: 
-      - 80
     networks:
-      - default
+      default:
     restart: unless-stopped
 
 networks:

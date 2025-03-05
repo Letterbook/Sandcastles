@@ -35,12 +35,14 @@ cd Sandcastles
 ```shell
 docker compose -f bootstrap.yml up root-ca -d
 export ROOT_CA_CASTLE=$(docker compose -f bootstrap.yml ps -q)
+sleep 1
 docker cp $ROOT_CA_CASTLE:/home/step/templates volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/secrets volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/db volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/config volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/certs volumes/root-ca/
 docker compose -f bootstrap.yml down
+cp volumes/ca.json volumes/root-ca/config/ca.json -f
 ```
 
 And on *nix, set the file permissions so containers can access them:
@@ -61,7 +63,20 @@ Create a local env file for docker compose
 ./env.bash
 ```
 
-### 4. Run everything  
+### 4. Run everything
+
+#### Using Podman
+
+This step will build new images that are configured to trust the root certificate authority you just created. Podman can build and run these images just fine, but podman compose doesn't set the right options to build the images. So, to use podman, you should build the images yourself, instead of relying on podman compose to do it. That can be done with the following commands.
+
+```shell
+podman build . -f proxy.Dockerfile -t localhost/traefik-sandcastle:latest
+podman build . -f mastodon.Dockerfile -t localhost/mastodon-sandcastle:latest --target mastodon
+podman build . -f mastodon.Dockerfile -t localhost/mastodon-sandcastle:latest --target mastodon-streaming
+```
+
+#### Compose
+
 This will re-build the service images with built-in trust for your new internal root CA. This allows all of the services to federate with each other with no additional modifications. The re-build is only necessary once, or whenever a service is updated. You can run only the services you want by specifying their overlay files as extra `-f` args to `docker compose up`
 ```shell
 # add other *.castle.yml as needed
@@ -84,7 +99,7 @@ Each of the castles provided by this project is configured to serve from it's ow
 # C:\Windows\System32\drivers\etc\hosts
 # OR
 # /etc/hosts
-127.0.0.1   dashboard.castle
+127.0.0.1   proxy.castle
 127.0.0.1   mastodon.castle
 127.0.0.1   letterbook.castle 
 #etc

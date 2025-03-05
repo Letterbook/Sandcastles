@@ -1,0 +1,29 @@
+http:
+  middlewares:
+    simpleAuth:
+      basicAuth:
+        users:
+          # username: sandcastles
+          # password: admin
+          - "sandcastles:$apr1$Xe1bQOFU$OQ.6qf4QCcRk5E8mQ.yt4."
+  routers:
+    api:
+      rule: "Host(`proxy.castle`) && PathPrefix(`/dashboard`)"
+      entrypoints:
+        - websecure
+      middlewares:
+        - simpleAuth
+      service: 'api@internal'
+      tls:
+        certResolver: 'smallstep'
+    dashboard:
+      rule: "Host(`localhost`) && PathPrefix(`/dashboard`)"
+      entrypoints:
+        - websecure
+        - web
+        - hostwebsecure
+      middlewares:
+        - simpleAuth
+      service: 'api@internal'
+      tls:
+        certResolver: 'smallstep'
