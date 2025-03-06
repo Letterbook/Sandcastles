@@ -3,14 +3,24 @@
 # shellcheck disable=SC3024
 # shellcheck disable=SC3030
 # shellcheck disable=SC1078                                                  #
-HELP="""Sandcastles - federation sandbox
-
-Easily and quickly set up a federation sandbox, for testing against
-production-like configurations of multiple fediverse backends.
-"""
-USAGE="Usage: ${CMD:=${0##*/}} [init|up|down|build|help] [APPS...|(-a|--all)] [-h|--help]"
-DIR=$(dirname "$(readlink -f -- "$0")")
-
+set_usage() {
+  USAGE="""Usage: ${CMD:=${0##*/}} ${1:-"[bootstrap|up|down|build|help]"} [APPS...|(-a|--all)] [(-v|--verbose)] [(-h|--help)]
+  APPS:
+    The apps to run this command on.
+    
+  Options:
+    -a|--all - apply to all apps
+    -v|--verbose - output additional info to stderr
+    -h|--help - display this help text
+    ${2}"""
+}; set_usage;
+set_help() {
+  HELP="""Sandcastles - ${1:-"federation sandbox"}
+  
+  ${2:-"""Easily and quickly set up a federation sandbox, for testing against
+  production-like configurations of multiple fediverse backends."""}
+  """
+}; set_help;
 exit2 () { printf >&2 "%s:  %s: '%s'\n%s\n" "$CMD" "$1" "$2" "$USAGE"; exit 2; }
 exit_runtime () { 
   printf >&2 "Sandcastles require a container runtime\nYou must install either podman (and podman-compose) or docker"; 
@@ -19,40 +29,32 @@ exit_runtime () {
 exit_usage() { printf "%s\n" "$USAGE"; exit 0; }
 exit_help() { printf "%s\n%s\n" "$HELP" "$USAGE"; exit 0; }
 check () { { [ "$1" != "$EOL" ] && [ "$1" != '--' ]; } || exit2 "missing argument" "$2"; }  # avoid infinite loop
+verbose () {
+  if [ "$opt_verbose" = "true" ]; then
+    printf "%s: %s" "$1" "$2" >&2
+  fi
+}
 
 # parse action
 case "$1" in
   # handle help cases
   -h | --help | help ) exit_help;;
   '' ) exit_usage;;
-  init ) opt_action=$1; shift
-    HELP="""${opt_action} - perform first time setup
-    
-    Prepare the project to run in your environment. Initializes a private
-    certificate authority, to provide ssl certificates to the sandcastle apps
-    """
-    USAGE="Usage: ${CMD:=${0##*/}} ${opt_action} [-h|--help]"
+  bootstrap ) opt_action=$1; shift
+    set_help "$opt_action" "perform first time setup"
+    set_usage "$opt_action"
     ;; 
   up ) opt_action=$1; shift
-    HELP="""${opt_action} - run selected apps
-    
-    Run the specified apps, or all apps with the --all flag
-    """
-    USAGE="Usage: ${CMD:=${0##*/}} ${opt_action} [APPS...|(-a|--all)] [-h|--help]"
+    set_help "$opt_action" "run the selected apps"
+    set_usage "$opt_action"
     ;;
   down ) opt_action=$1; shift
-    HELP="""${opt_action} - shut down the selected apps
-    
-    Shut down the specified apps, or all apps with the --all flag
-    """
-    USAGE="Usage: ${CMD:=${0##*/}} ${opt_action} [APPS...|(-a|--all)] [-h|--help]"
+    set_help "$opt_action" "shut down the selected apps"
+    set_usage "$opt_action"
     ;;
   build ) opt_action=$1; shift
-    HELP="""${opt_action} - build the required images
-    
-    Build container images with trust for your private CA
-    """
-    USAGE="Usage: ${CMD:=${0##*/}} ${opt_action} [APPS...|(-a|--all)] [-h|--help]"
+    set_help "$opt_action" "Build container images with trust for your Sandcastle private CA"
+    set_usage "$opt_action" "-r|--required - build required container images not associated with an individual app"
     ;;
   * ) exit2 "invalid command" "$opt_action";;
 esac
@@ -86,13 +88,13 @@ else
   exit_runtime
 fi
 
-# example of script using command-line options
-printf "%s" """DIR = '$DIR'
+verbose "parse options" """DIR = '$DIR'
 action = '$opt_action'
 @ = ($*)
 apps = ${opt_apps[*]}
-all = '$opt_all'
-required = '$opt_required'
+--all = '$opt_all'
+--required = '$opt_required'
+--verbose = '$opt_verbose'
 runtime = '$env_runtime'
 """
 
@@ -107,7 +109,7 @@ case $opt_action in
       for n in ${opt_apps[*]}; do compose_files+=("-f" "$n.compose.yml"); done
     fi
     cmd_args=("$env_runtime" "compose" "${compose_files[@]}" "up" "-d")
-#    echo "${cmd_args[@]}"
+    verbose "up" "${cmd_args[@]}" 
     exec "${cmd_args[@]}"
   ;;
 
@@ -123,6 +125,7 @@ case $opt_action in
         docker_files+=("$(find "$DIR" -type f -name "$n*.Dockerfile")")
       done
     fi
+    verbose "build docker files" "${cmd_args[@]}" 
     
 #    tags() is an array of "tuples" which don't exist in sh scripts as far as I know.
 #    so, it's actually a regular array, but with paired elements.
@@ -138,7 +141,7 @@ case $opt_action in
       if [ $env_runtime = "podman" ]; then
         cmd_args+=("--format" "docker")
       fi
-#      echo "${cmd_args[@]}"
+      verbose "build command" "${cmd_args[@]}" 
       "${cmd_args[@]}"
       i=$((i+2))
     done
