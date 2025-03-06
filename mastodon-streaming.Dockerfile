@@ -1,6 +1,6 @@
 FROM docker.io/smallstep/step-cli:0.25.0 AS step-cli
 
-FROM ghcr.io/mastodon/mastodon:v4.3.4
+FROM ghcr.io/mastodon/mastodon-streaming:v4.3.4
 
 USER root
 

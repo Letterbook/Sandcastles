@@ -14,7 +14,7 @@ DIR=$(dirname "$(readlink -f -- "$0")")
 exit2 () { printf >&2 "%s:  %s: '%s'\n%s\n" "$CMD" "$1" "$2" "$USAGE"; exit 2; }
 exit_runtime () { 
   printf >&2 "Sandcastles require a container runtime\nYou must install either podman (and podman-compose) or docker"; 
-  exit 3; 
+  exit 3;
 }
 exit_usage() { printf "%s\n" "$USAGE"; exit 0; }
 exit_help() { printf "%s\n%s\n" "$HELP" "$USAGE"; exit 0; }
@@ -65,8 +65,9 @@ while [ "$1" != "$EOL" ]; do
   case "$opt" in
 
     # defined options - EDIT HERE!
-    -a | --all  ) opt_all=true;;
-    -h | --help ) exit_help;;
+    -a | --all      ) opt_all=true;;
+    -h | --help     ) exit_help;;
+    -r | --required ) opt_required=true;;
 
     # process special cases
     --) while [ "$1" != "$EOL" ]; do set -- "$@" "$1"; shift; done;;   # parse remaining as passthrough
@@ -91,21 +92,55 @@ action = '$opt_action'
 @ = ($*)
 apps = ${opt_apps[*]}
 all = '$opt_all'
+required = '$opt_required'
 runtime = '$env_runtime'
 """
 
+# Zhu Li, do the thing!
 case $opt_action in
-  up)
-    cmd_files=()
-    if $opt_all; then
+  up )
+    compose_files=("-f" "$DIR/docker-compose.yml")
+    if [ "$opt_all" = "true" ]; then
       all_files=$(find "$DIR" -type f -name "*.compose.yml")
-      # shellcheck disable=SC2048
-      for n in ${all_files[*]}; do cmd_files+=("-f" "$n"); done 
+      for n in ${all_files[*]}; do compose_files+=("-f" "$n"); done 
     else
-      # shellcheck disable=SC2048
-      for n in ${opt_apps[*]}; do cmd_files+=("-f" "$n.compose.yml"); done
+      for n in ${opt_apps[*]}; do compose_files+=("-f" "$n.compose.yml"); done
     fi
-    echo "$env_runtime" "compose" "${cmd_files[@]}" "up" "-d"
-#    exec "$env_runtime" "compose" "${cmd_files[@]}" "up" "-d"
+    cmd_args=("$env_runtime" "compose" "${compose_files[@]}" "up" "-d")
+#    echo "${cmd_args[@]}"
+    exec "${cmd_args[@]}"
+  ;;
+
+  build )
+    docker_files=()
+    if [ "$opt_all" = "true" ]; then
+      docker_files+=$(find "$DIR" -type f -name "*.Dockerfile")
+    elif [ "$opt_required" = "true" ]; then
+      docker_files+=("$DIR/proxy.Dockerfile")
+    fi
+    if [ "$opt_all" != "true" ]; then
+      for n in ${opt_apps[*]}; do
+        docker_files+=("$(find "$DIR" -type f -name "$n*.Dockerfile")")
+      done
+    fi
+    
+#    tags() is an array of "tuples" which don't exist in sh scripts as far as I know.
+#    so, it's actually a regular array, but with paired elements.
+#    Like ("x.Dockerfile" "tag/x:latest" "y.Dockerfile" "tag/y:latest")...
+    tags=()
+    for n in ${docker_files[*]}; do
+      tags+=("$n" "localhost/sandcastles/$(basename ${n//.Dockerfile})");
+    done
+    
+    i=0
+    while [ "$i" -lt ${#tags[@]} ]; do 
+      cmd_args=("$env_runtime" "build" "$DIR" "-f" "${tags[i]}" "-t" "${tags[i+1]}:latest")
+      if [ $env_runtime = "podman" ]; then
+        cmd_args+=("--format" "docker")
+      fi
+#      echo "${cmd_args[@]}"
+      "${cmd_args[@]}"
+      i=$((i+2))
+    done
   ;;
 esac
