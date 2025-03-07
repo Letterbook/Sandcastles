@@ -84,10 +84,11 @@ This will configure the internal Smallstep CA, and will generate a number of sec
 
 #### Provide docker compose env vars
 
-Create a local env file for docker compose
+Create a local env file for docker compose. This allows the traefik proxy to read labels on the containers, and route to them accordingly.
 
 ```shell
-./env.bash
+DOCKER_PATH=$(sed -e 's|^.*://||' <<< $DOCKER_HOST)
+echo "DOCKER_PATH=${DOCKER_PATH}" > .env
 ```
 
 ### 4. Run everything
