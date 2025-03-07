@@ -17,9 +17,9 @@ services:
       - traefik.http.routers.mastodon.tls=true
       - traefik.http.routers.mastodon.tls.certresolver=smallstep
       - traefik.http.services.mastodon-sandcastles.loadBalancer.healthCheck.path=/health
-      - traefik.port=3000
+      - traefik.port=2970
       - traefik.enable=true
-      - traefik.docker.network=fediverse
+      - traefik.docker.network=sandcastles_mastodon
     depends_on:
       mastodon_db:
         condition: service_started
@@ -27,12 +27,12 @@ services:
         condition: service_started
       mastodon-init:
         condition: service_completed_successfully
-    image: localhost/mastodon-sandcastle:latest
+    image: localhost/sandcastles/mastodon:latest
     build:
       dockerfile: ./mastodon.Dockerfile
       target: mastodon
       tags:
-        - localhost/mastodon-sandcastle:latest
+        - localhost/sandcastles/mastodon:latest
     command: bundle exec rails server -p 2970 -b 0.0.0.0
 #    command: bundle exec puma -C config/puma.rb
 #    command: tail -f /dev/null
@@ -41,8 +41,8 @@ services:
     ports:
       - '2970:2970'
     networks:
-      - mastodon
-      - default
+      default:
+      mastodon:
     environment: &mastodon_env
       LOCAL_DOMAIN: mastodon.castle
       ALTERNATE_DOMAINS: 127.0.0.1:2970
@@ -66,7 +66,7 @@ services:
       ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY: PhdFyyfy5xJ7WVd2lWBpcPScRQHzRTNr
 #    restart: on-failure
     healthcheck:
-      test: ['CMD-SHELL',"curl -s --noproxy localhost localhost:3000/health | grep -q 'OK' || exit 1"]
+      test: ['CMD-SHELL',"curl -s --noproxy localhost localhost:2970/health | grep -q 'OK' || exit 1"]
       interval: 5s
       timeout: 1s
       retries: 10
@@ -94,7 +94,8 @@ services:
       dockerfile: mastodon.Dockerfile
       target: mastodon-streaming
       tags:
-        - localhost/mastodon-sandcastle:latest
+        - localhost/sandcastles/mastodon:latest
+    image: localhost/sandcastles/mastodon-streaming:latest
     command: node ./streaming/index.js
     networks:
       - mastodon
@@ -107,17 +108,17 @@ services:
     depends_on:
       mastodon:
         condition: service_healthy
-    image: localhost/mastodon-sandcastle:latest
+    image: localhost/sandcastles/mastodon:latest
     build:
       dockerfile: mastodon.Dockerfile
       target: mastodon
       tags:
-        - localhost/mastodon-sandcastle:latest
+        - localhost/sandcastles/mastodon:latest
     command: bundle exec sidekiq
     volumes: *mastodon_data_web_volume
     networks:
-      - mastodon
       - default
+      - mastodon
     environment:
       <<: *mastodon_env
       MASTODON_MODE: sidekiq
@@ -150,13 +151,12 @@ services:
       - mastodon
     restart: 'no'
 
-  # Configure docker's internal DNS
-  # Traefik will provide SSL termination and proxy back to mastodon
   proxy:
     networks:
       default:
         aliases:
           - mastodon.castle
+      mastodon: {}
 
 volumes:
   mastodon_data_db:

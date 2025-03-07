@@ -12,7 +12,7 @@ entryPoints:
     address: 'localhost:8443'
 
 log: 
-  level: DEBUG
+  level: INFO
 
 accessLog: {}
 

@@ -1,12 +1,38 @@
-version: '3.5'
+version: '3.10'
 name: sandcastles
 
 services:
   network-tools:
     networks:
-      - default 
+      default:
+      mastodon:
     image: docker.io/jonlabelle/network-tools
-    command: curl https://httpbin.castle
+    command: |
+      echo domain;
+      curl https://mastodon.castle
+      echo host;
+      curl http://mastodon:2970
+      echo root;
+      curl https://root-ca:9000
+
+  'proxy':
+    image: localhost/sandcastles/traefik-sandcastle:latest
+    build:
+      dockerfile: proxy.Dockerfile
+      tags:
+        - localhost/traefik-sandcastle:latest
+    security_opt:
+      - label=type:container_runtime_t
+    volumes:
+      - '${DOCKER_PATH}:/var/run/docker.sock:z'
+      - './volumes/proxy:/etc/traefik/:z'
+    networks:
+      default:
+        aliases: []
+    ports:
+      - '8080:80'
+      - '8443:443'
+    restart: unless-stopped
 
   root-ca:
     image: docker.io/smallstep/step-ca:0.27.1
@@ -26,27 +52,8 @@ services:
           - root-ca.castle
     restart: unless-stopped
   
-  'proxy.castle':
-    image: localhost/traefik-sandcastle:latest
-    build: 
-      dockerfile: proxy.Dockerfile
-      tags:
-        - localhost/traefik-sandcastle:latest
-    security_opt:
-      - label=type:container_runtime_t
-    volumes:
-      - '${DOCKER_PATH}:/var/run/docker.sock:z'
-      - './volumes/proxy/:/etc/traefik/:z'
-    networks:
-      default:
-        aliases:
-          - httpbin.castle 
-    ports:
-      - '8080:80'
-      - '8443:443'
-    restart: unless-stopped
-  
   httpbin:
+    scale: 0
     labels:
     - traefik.http.routers.httpbin.rule=Host(`httpbin.castle`)
     - traefik.http.routers.httpbin.tls=true
