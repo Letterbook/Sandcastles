@@ -1,5 +1,5 @@
 # must be used as an overlay for the main docker-compose file. Ex
-# docker-compose -f docker-compose.yml -f mastodon.castle.yml up
+# docker-compose -f docker-compose.yml -f {{app_name}}.castle.yml up
 
 # defaults
 # handle: 
