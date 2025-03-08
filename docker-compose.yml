@@ -5,18 +5,13 @@ services:
   network-tools:
     networks:
       default:
-      mastodon:
-    image: docker.io/jonlabelle/network-tools
-    command: |
-      echo domain;
-      curl https://mastodon.castle
-      echo host;
-      curl http://mastodon:2970
-      echo root;
-      curl https://root-ca:9000
+    image: localhost/sandcastles/network-tools:latest
+    healthcheck:
+      test: curl -sS --fail-with-body https://proxy.castle > /dev/null
+    command: curl -Ivv https://proxy.castle
 
-  'proxy':
-    image: localhost/sandcastles/traefik-sandcastle:latest
+  proxy:
+    image: localhost/sandcastles/traefik:latest
     build:
       dockerfile: proxy.Dockerfile
       tags:
@@ -28,7 +23,8 @@ services:
       - './volumes/proxy:/etc/traefik/:z'
     networks:
       default:
-        aliases: []
+        aliases: 
+          - 'proxy.castle'
     ports:
       - '8080:80'
       - '8443:443'
@@ -58,7 +54,6 @@ services:
     - traefik.http.routers.httpbin.rule=Host(`httpbin.castle`)
     - traefik.http.routers.httpbin.tls=true
     - traefik.http.routers.httpbin.tls.certresolver=smallstep
-    # - traefik.http.middlewares.setForwards.headers.sslProxyHeaders.X-Forwarded-Proto=https
     - traefik.port=80
     - traefik.enable=true
     image: docker.io/kennethreitz/httpbin

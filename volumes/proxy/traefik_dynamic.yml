@@ -25,5 +25,3 @@ http:
       middlewares:
         - simpleAuth
       service: 'api@internal'
-      tls:
-        certResolver: 'smallstep'

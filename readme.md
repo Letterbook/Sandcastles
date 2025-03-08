@@ -31,15 +31,16 @@ git clone https://github.com/Letterbook/Sandcastles.git
 cd Sandcastles
 ```
 
-### 2. Bootstrap the project
+### 2. Bootstrap and run the project
 
-You can use the provided `castle` script to perform most actions with the project. It should work with most common shells, but was made in `bash`.
+You can use the provided `castle` script to perform most actions with the project. It _should_ work with most common shells, but was made in `bash`. It also _should_ work in linux, mac, and windows (under WSL). But, it was made in a linux environment. If you want to inspect what `castle` will do before you execute it, there is a `--dry-run` flag you can use for that.
+
 The `bootstrap` command normally only needs to be run once, unless you need to regenerate your private keys for the internal sandcastles CA.
 ```shell
 ./castle bootstrap
 ```
 
-You may need to rebuild your container images periodically, to receive updates or perform testing.
+You should build the container images before first use. This is necessary if you're running on `podman`. If you're using `docker`, it's still a good idea. You may need to rebuild your container images periodically, to receive updates or test your changes.
 ```shell
 ./castle build mastodon --required
 ```
@@ -53,10 +54,16 @@ Then you can run and interact with the apps.
 
 Check the help for more details.
 
+```shell
+./castle help
+```
+
 <details>
   <summary>
       <h3>Bootstrap and run without using the `castle` script</h3>
   </summary>
+
+If for some reason you can't use the 
 
 ### 2b. Initialize the internal root CA
 ```shell

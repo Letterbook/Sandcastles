@@ -2,12 +2,12 @@
 
 # shellcheck disable=SC3024
 # shellcheck disable=SC3030
-# shellcheck disable=SC1078                                                  #
+# shellcheck disable=SC1078
 DIR=$(dirname "$(readlink -f -- "$0")")
 C_ERROR="\033[0;31m"
 C_WARN="\033[0;33m"
-C_NOTICE="\033[0;32m"
-C_VERBOSE="\033[0;34m"
+C_VERBOSE="\033[0;32m"
+C_NOTICE="\033[0;34m"
 C_NONE="\033[0m"
 set_usage() {
   USAGE="""Usage: ${CMD:=${0##*/}} ${1:-"[bootstrap|up|down|build|help]"} [APPS...|(-a|--all)] [(-v|--verbose)] [(-d|--dry-run)] [(-h|--help)]
@@ -19,7 +19,17 @@ set_usage() {
     -v|--verbose - output additional info to stderr; pass multiple times for greater verbosity
     -d|--dry-run - preview the commends to be run, but do not execute them
     -h|--help - display this help text
-    ${2}"""
+    ${2}
+  
+  Examples:
+    ${C_VERBOSE}Bootstrap the project${C_NONE}
+    ./castle bootstrap
+    
+    ${C_VERBOSE}Build baseline required images, plus mastodon and sharkey${C_NONE}
+    ./castle build mastodon sharkey --required
+    
+    ${C_VERBOSE}Run mastodon and letterbook${C_NONE}
+    ./castle up mastodon letterbook"""
 }; set_usage;
 set_help() {
   HELP="""Sandcastles - ${1:-"federation sandbox"}
@@ -28,7 +38,7 @@ set_help() {
   production-like configurations of multiple fediverse backends."""}
   """
 }; set_help;
-exit2 () { printf >&2 "%s:  %s: '%s'\n%s\n" "$CMD" "$1" "$2" "$USAGE"; exit 2; }
+exit2 () { printf >&2 "%s:  %s: '%s'\n%b\n" "$CMD" "$1" "$2" "$USAGE"; exit 2; }
 exit_runtime () { 
   printf >&2 "Sandcastles require a container runtime\nYou must install either podman (and podman-compose) or docker"; 
   exit 3;
@@ -36,13 +46,13 @@ exit_runtime () {
 exit_err() {
   printf >&2 "${C_ERROR}%s Error!${C_NONE}\n%b\n" "$1" "⤷ $2"; exit 4
 }
-exit_usage() { printf "%s\n" "$USAGE"; exit 0; }
-exit_help() { printf "%s\n%s\n" "$HELP" "$USAGE"; exit 0; }
+exit_usage() { printf "%b\n" "$USAGE"; exit 0; }
+exit_help() { printf "%s\n%b\n" "$HELP" "$USAGE"; exit 0; }
 check () { { [ "$1" != "$EOL" ] && [ "$1" != '--' ]; } || exit2 "missing argument" "$2"; }  # avoid infinite loop
 verbose () {
   if [ "$opt_verbose" -gt 0 ]; then
     debug=$1; shift
-    printf "${C_NOTICE}%s${C_NONE}\n%s\n" "$debug"  "⤷ $(printf "%s " "$@")" >&2
+    printf "${C_VERBOSE}%s${C_NONE}\n%s\n" "$debug"  "⤷ $(printf "%s " "$@")" >&2
   fi
 }
 verbose2 () {
@@ -56,7 +66,7 @@ run() {
   debug=$1; shift
   cmd_args=("$@")
   if [ "$opt_dryrun" = "true" ]; then
-    printf "${C_VERBOSE}dry-run${C_NONE}\n%s\n" "⤷ $(printf "%s %s" "${cmd_args[*]}" "${arg_pass[*]}")" >&2
+    printf "${C_NOTICE}(dry-run) ${C_VERBOSE}$debug${C_NONE}\n%s\n" "⤷ $(printf "%s %s" "${cmd_args[*]}" "${arg_pass[*]}")" >&2
     return
   fi
   if [ "$opt_verbose" -gt 0 ]; then
@@ -108,7 +118,7 @@ while [ "$1" != "$EOL" ]; do
   opt="$1"; shift
   case "$opt" in
 
-    # defined options - EDIT HERE!
+    # defined options
     -a | --all      ) opt_all=true;;
     -h | --help     ) exit_help;;
     -r | --required ) opt_required=true;;
@@ -117,10 +127,10 @@ while [ "$1" != "$EOL" ]; do
 
     # process special cases
     --) while [ "$1" != "$EOL" ]; do set -- "$@" "$1"; arg_pass+=("$1"); shift; done;;   # parse remaining as passthrough
-    --[!=]*=*) set -- "${opt%%=*}" "${opt#*=}" "$@";;                  # "--opt=arg"  ->  "--opt" "arg"
-    -[A-Za-z0-9] | -*[!A-Za-z0-9]*) exit2 "invalid option" "$opt";;    # anything invalid like '-*'
-    -?*) other="${opt#-?}"; set -- "${opt%$other}" "-${other}" "$@";;  # "-abc"  ->  "-a" "-bc"
-    *) opt_apps+=("$opt");;                                            # positional, rotate to the end
+    --[!=]*=*) set -- "${opt%%=*}" "${opt#*=}" "$@";;                                    # "--opt=arg"  ->  "--opt" "arg"
+    -[A-Za-z0-9] | -*[!A-Za-z0-9]*) exit2 "invalid option" "$opt";;                      # anything invalid like '-*'
+    -?*) other="${opt#-?}"; set -- "${opt%$other}" "-${other}" "$@";;                    # "-abc"  ->  "-a" "-bc"
+    *) opt_apps+=("$opt");;                                                              # positional, rotate to the end
   esac
 done; shift
 
@@ -153,6 +163,10 @@ case $opt_action in
       for n in ${opt_apps[*]}; do compose_files+=("-f" "$n.compose.yml"); done
     fi
     cmd_args=("$env_runtime" "compose" "${compose_files[@]}" "up" "-d")
+    if [ "$env_runtime" = "podman" ]; then
+      CONTAINERS_CONF_OVERRIDE="$DIR/volumes/containers.conf"
+      export CONTAINERS_CONF_OVERRIDE
+    fi
     run "compose up" "${cmd_args[@]}"
   ;;
 
@@ -163,16 +177,16 @@ case $opt_action in
       docker_files+=$(find "$DIR" -type f -name "*.Dockerfile")
     elif [ "$opt_required" = "true" ]; then
       verbose "find Dockerfiles" "--required"
-      docker_files+=("$DIR/proxy.Dockerfile")
+      docker_files+=("$DIR/traefik.Dockerfile" "$DIR/network-tools.Dockerfile")
     fi
     if [ "$opt_all" != "true" ]; then
       for n in ${opt_apps[*]}; do
         verbose "find Dockerfiles" "$n"
         found=$(find "$DIR" -type f -name "$n*.Dockerfile")
         docker_files+=("$found")
-        verbose "found" ${docker_files[*]}
       done
     fi
+    verbose "found" ${docker_files[*]}
     
 #    tags() is an array of "tuples" which don't exist in sh scripts as far as I know.
 #    so, it's actually a regular array, but with paired elements.
@@ -188,7 +202,7 @@ case $opt_action in
       if [ $env_runtime = "podman" ]; then
         cmd_args+=("--format" "docker")
       fi
-      run "build images" "${cmd_args[@]}"
+      run "build ${tags[i+1]}" "${cmd_args[@]}"
       i=$((i+2))
     done
   ;;
@@ -218,7 +232,8 @@ case $opt_action in
     container_id=$(run "get container id" "$env_runtime" "compose" "-f" "bootstrap.yml" "ps" "-q")
     container_id=${container_id:-"dry-run_container"}
     run "wait for container" sleep 1
-    run "extract private key for sandcastles internal CA" "$env_runtime" "cp" "$container_id:/home/step/templates" "$DIR/volumes/root-ca/"
+    run "extract private key for sandcastles internal CA" \
+      "$env_runtime" "cp" "$container_id:/home/step/templates" "$DIR/volumes/root-ca/"
     run "..." "$env_runtime" "cp" "$container_id:/home/step/secrets" "$DIR/volumes/root-ca/"
     run "..." "$env_runtime" "cp" "$container_id:/home/step/db" "$DIR/volumes/root-ca/"
     run "..." "$env_runtime" "cp" "$container_id:/home/step/certs" "$DIR/volumes/root-ca/"
@@ -229,6 +244,9 @@ case $opt_action in
     run "..." "find" "$DIR/volumes/root-ca" "-type" "d" "-exec" "chmod" "755" "{}" "+"
     run "..." "find" "$DIR/volumes/root-ca" "-type" "f" "-exec" "chmod" "644" "{}" "+"
     
-    run "collect info about the runtime environment" printf "%s\n" "DOCKER_PATH=${DOCKER_HOST//"unix://"}" > "$DIR/.env"
+    run "collect info about the runtime environment" \
+      printf "%s\n" "DOCKER_PATH=${DOCKER_HOST//"unix://"}" > "$DIR/.env"
+    run "..." printf "%s\n" """[containers]
+base_hosts_file = \"$DIR/volumes/hosts\" """ > "$DIR/volumes/containers.conf"
   ;;
 esac
