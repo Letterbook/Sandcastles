@@ -1,14 +1,10 @@
-# Copyright VMware, Inc.
-# SPDX-License-Identifier: APACHE-2.0
-# Configuration adapted from
-# https://github.com/bitnami/containers/blob/main/bitnami/mastodon/docker-compose.yml
-
 # must be used as an overlay for the main docker-compose file. Ex
 # docker-compose -f docker-compose.yml -f mastodon.castle.yml up
 
 # defaults
-# admin: user@bitnami.org
-# password: bitnami1
+# handle: castle_mastodon
+# admin: castle@mastodon.castle
+# password: password
 
 services:
   mastodon:
@@ -72,11 +68,10 @@ services:
       retries: 10
   
   mastodon-init:
-    container_name: mastodon-init
     image: ghcr.io/mastodon/mastodon:v4.3.4
     command: /opt/mastodon/init.sh
     volumes:
-      - './scripts/mastodon/init.sh:/opt/mastodon/init.sh:ro'
+      - './volumes/mastodon/init.sh:/opt/mastodon/init.sh:ro'
       - 'mastodon_data_web:/mastodon/public/system:z'
     networks:
       - mastodon
