@@ -1,0 +1,38 @@
+# must be used as an overlay for the main docker-compose file. Ex
+# docker-compose -f docker-compose.yml -f mastodon.castle.yml up
+
+# defaults
+# handle: 
+# admin: 
+# password: 
+
+services:
+  {{app_name}}:
+    labels:
+      - traefik.http.routers.{{app_name}}.rule=Host(`{{app_name}}.castle`)
+      - traefik.http.routers.{{app_name}}.tls=true
+      - traefik.http.routers.{{app_name}}.tls.certresolver=smallstep
+      - traefik.http.services.{{app_name}}-sandcastles.loadBalancer.healthCheck.path=
+      - traefik.port=
+      - traefik.enable=true
+      - traefik.docker.network=sandcastles_{{app_name}}
+    image: localhost/sandcastles/{{app_name}}:latest
+    build:
+      dockerfile: ./{{app_name}}.Dockerfile
+      target: {{app_name}}
+      tags:
+        - localhost/sandcastles/{{app_name}}:latest
+    command: 
+    ports:
+      - '2999:'
+
+  proxy:
+    networks:
+      default:
+        aliases:
+          - {{app_name}}.castle
+      {{app_name}}: {}
+
+networks:
+  {{app_name}}:
+  default:

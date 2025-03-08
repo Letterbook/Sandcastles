@@ -18,7 +18,7 @@ set_usage() {
     -a|--all - apply to all apps
     -v|--verbose - output additional info to stderr; pass multiple times for greater verbosity
     -d|--dry-run - preview the commends to be run, but do not execute them
-    -h|--help - display this help text
+    -h|--help - display help text
     ${2}
   
   Examples:
@@ -32,8 +32,7 @@ set_usage() {
     ./castle up mastodon letterbook"""
 }; set_usage;
 set_help() {
-  HELP="""Sandcastles - ${1:-"federation sandbox"}
-  
+  HELP="""Sandcastles - ${C_VERBOSE}${1:-"federation sandbox"}${C_NONE}
   ${2:-"""Easily and quickly set up a federation sandbox, for testing against
   production-like configurations of multiple fediverse backends."""}
   """
@@ -47,7 +46,7 @@ exit_err() {
   printf >&2 "${C_ERROR}%s Error!${C_NONE}\n%b\n" "$1" "⤷ $2"; exit 4
 }
 exit_usage() { printf "%b\n" "$USAGE"; exit 0; }
-exit_help() { printf "%s\n%b\n" "$HELP" "$USAGE"; exit 0; }
+exit_help() { printf "%b\n%b\n" "$HELP" "$USAGE"; exit 0; }
 check () { { [ "$1" != "$EOL" ] && [ "$1" != '--' ]; } || exit2 "missing argument" "$2"; }  # avoid infinite loop
 verbose () {
   if [ "$opt_verbose" -gt 0 ]; then
@@ -105,6 +104,9 @@ case "$1" in
   build ) opt_action=$1; shift
     set_help "$opt_action" "Build container images with trust for your Sandcastle private CA"
     set_usage "$opt_action" "-r|--required - build required container images not associated with an individual app"
+    ;;
+  new ) opt_action=$1; shift
+    set_help "$opt_action" "Scaffold up required files to add new apps to the Sandcastle. New app names should follow the command"
     ;;
   * ) exit2 "invalid command" "$opt_action";;
 esac
@@ -240,7 +242,7 @@ case $opt_action in
     run "..." "$env_runtime" "compose" "-f" "bootstrap.yml" "down"
     
     run "configure access to sandcastles internal CA" mkdir "-p" "$DIR/volumes/root-ca/config"
-    run "..." "cp" "$DIR/volumes/ca.json" "$DIR/volumes/root-ca/config/ca.json" "-f"
+    run "..." "cp" "$DIR/volumes/ca.json" "$DIR/volumes/root-ca/config/ca.json"
     run "..." "find" "$DIR/volumes/root-ca" "-type" "d" "-exec" "chmod" "755" "{}" "+"
     run "..." "find" "$DIR/volumes/root-ca" "-type" "f" "-exec" "chmod" "644" "{}" "+"
     
@@ -248,5 +250,16 @@ case $opt_action in
       printf "%s\n" "DOCKER_PATH=${DOCKER_HOST//"unix://"}" > "$DIR/.env"
     run "..." printf "%s\n" """[containers]
 base_hosts_file = \"$DIR/volumes/hosts\" """ > "$DIR/volumes/containers.conf"
+  ;;
+
+  new )
+    compose_template=$(cat "$DIR/templates/compose.yml")
+    docker_template=$(cat "$DIR/templates/Dockerfile")
+    for n in ${opt_apps[*]}; do
+      compose_file=${compose_template//"{{app_name}}"/$n}
+      docker_file=${docker_template//"{{app_name}}"/$n}
+      run "generate compose template for $n" printf "%s\n" "$compose_file" > "$DIR/$n.compose.yml"
+      run "generate Dockerfile template for $n" printf "%s\n" "$docker_file" > "$DIR/$n.Dockerfile"
+    done
   ;;
 esac
