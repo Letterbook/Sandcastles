@@ -1,0 +1,7 @@
+# Default minimal hosts file to be provided to containers
+# Podman uses the local machine's hosts file by default, which can cause problems if you have conflicting entries with 
+# a sandcastle network alias
+# Loopback entries; do not change.
+# For historical reasons, localhost precedes localhost.localdomain:
+127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4
+::1         localhost localhost.localdomain localhost6 localhost6.localdomain6

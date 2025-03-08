@@ -31,22 +31,58 @@ git clone https://github.com/Letterbook/Sandcastles.git
 cd Sandcastles
 ```
 
-### 2. Initialize the internal root CA
+### 2. Bootstrap and run the project
+
+You can use the provided `castle` script to perform most actions with the project. It _should_ work with most common shells, but was made in `bash`. It also _should_ work in linux, mac, and windows (under WSL). But, it was made in a linux environment. If you want to inspect what `castle` will do before you execute it, there is a `--dry-run` flag you can use for that.
+
+The `bootstrap` command normally only needs to be run once, unless you need to regenerate your private keys for the internal sandcastles CA.
+```shell
+./castle bootstrap
+```
+
+You should build the container images before first use. This is necessary if you're running on `podman`. If you're using `docker`, it's still a good idea. You may need to rebuild your container images periodically, to receive updates or test your changes.
+```shell
+./castle build mastodon --required
+```
+
+Then you can run and interact with the apps.
+```shell
+./castle up mastodon
+# do stuff
+./castle down --all
+```
+
+Check the help for more details.
+
+```shell
+./castle help
+```
+
+<details>
+  <summary>
+      <h3>Bootstrap and run without using the `castle` script</h3>
+  </summary>
+
+If for some reason you can't use the 
+
+### 2b. Initialize the internal root CA
 ```shell
 docker compose -f bootstrap.yml up root-ca -d
 export ROOT_CA_CASTLE=$(docker compose -f bootstrap.yml ps -q)
+sleep 1
 docker cp $ROOT_CA_CASTLE:/home/step/templates volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/secrets volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/db volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/config volumes/root-ca/
 docker cp $ROOT_CA_CASTLE:/home/step/certs volumes/root-ca/
 docker compose -f bootstrap.yml down
+cp volumes/ca.json volumes/root-ca/config/ca.json -f
 ```
 
 And on *nix, set the file permissions so containers can access them:
 ```shell
 find volumes/root-ca -type d -exec chmod 755 {} +
-chmod ugo+rw volumes/root-ca/* -R
+find volumes/root-ca -type f -exec chmod 644 {} +
 ```
 
 This will configure the internal Smallstep CA, and will generate a number of secrets that you should maintain. If you need to regenerate any of these secrets, you can delete everything in the `./volumes/root-ca/` except the `.gitignore` file.
@@ -55,13 +91,27 @@ This will configure the internal Smallstep CA, and will generate a number of sec
 
 #### Provide docker compose env vars
 
-Create a local env file for docker compose
+Create a local env file for docker compose. This allows the traefik proxy to read labels on the containers, and route to them accordingly.
 
 ```shell
-./env.bash
+DOCKER_PATH=$(sed -e 's|^.*://||' <<< $DOCKER_HOST)
+echo "DOCKER_PATH=${DOCKER_PATH}" > .env
 ```
 
-### 4. Run everything  
+### 4. Run everything
+
+#### Using Podman
+
+This step will build new images that are configured to trust the root certificate authority you just created. Podman can build and run these images just fine, but podman compose doesn't set the right options to build the images. So, to use podman, you should build the images yourself, instead of relying on podman compose to do it. That can be done with the following commands.
+
+```shell
+podman build . -f proxy.Dockerfile -t localhost/traefik-sandcastle:latest
+podman build . -f mastodon.Dockerfile -t localhost/mastodon-sandcastle:latest --target mastodon
+podman build . -f mastodon.Dockerfile -t localhost/mastodon-sandcastle:latest --target mastodon-streaming
+```
+
+#### Compose
+
 This will re-build the service images with built-in trust for your new internal root CA. This allows all of the services to federate with each other with no additional modifications. The re-build is only necessary once, or whenever a service is updated. You can run only the services you want by specifying their overlay files as extra `-f` args to `docker compose up`
 ```shell
 # add other *.castle.yml as needed
@@ -77,33 +127,34 @@ docker compose -f docker-compose.yml -f mastodon.castle.yml -f sharkey.castle.ym
 ```
 
 At this point, you have a functioning sandbox full of fedi services that can all federate with each other. To make this maximally useful to you for local development of your own fedi service, continue on to the following optional steps.
+</details>
 
-### 4. Add .castle domains to your local hosts file (Optional)  
+### Add .castle domains to your local hosts file (Optional)  
 Each of the castles provided by this project is configured to serve from it's own .castle domain (ie. mastodon.castle, letterbook.castle, etc). To interact (and federate) with them from your host (outside of any docker container) you should add these to your system's hosts file.
 ```ini
 # C:\Windows\System32\drivers\etc\hosts
 # OR
 # /etc/hosts
-127.0.0.1   dashboard.castle
+127.0.0.1   proxy.castle
 127.0.0.1   mastodon.castle
 127.0.0.1   letterbook.castle 
 #etc
 ```
 
-### 5. Add your internal CA as a trusted CA on your host (Optional)  
+### Add your internal CA as a trusted CA on your host (Optional)  
 This requires having the [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/) installed on your host machine. After this step, your computer will trust SSL certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. This is a mild security risk. In step 1, you generated a private key to be used by this CA to sign those SSL certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. Keep that key safe.
 ```shell
 step certificate install --all volumes/root-ca/certs/root_ca.crt
 ```
 
 #### Alternatively
-You don't have to configure system-wide trust for the sandcastle private CA. Many stacks have a way to provide a custom CA bundle that can be used to validate certificates on HTTP requests. For example:
+You might not have to configure system-wide trust for the sandcastle internal CA. Many stacks have a way to provide a custom CA bundle that can be used to validate certificates on HTTP requests. For example:
 
 - Nodejs        
   `export NODE_EXTRA_CA_CERTS=/path/to/volumes/root-ca/certs/root_ca.crt`
  
 
-### 6. Remove the trusted CA (Optional)
+### Revoke the internal CA (Optional)
 If you need to revoke trust in the Sandcastles CA, you can use [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/uninstall/) again.
 
 ```shell

@@ -1,0 +1,39 @@
+entryPoints: 
+  web:
+    address: ':80'
+    http: 
+      redirections: 
+        entryPoint: 
+          to: websecure
+          scheme: https
+  websecure:
+    address: ':443'
+  hostwebsecure:
+    address: 'localhost:8443'
+
+log: 
+  level: INFO
+
+accessLog: {}
+
+api:
+  dashboard: true
+  debug: true
+  insecure: true
+
+providers: 
+  docker:
+    watch: true
+    network: sandcastles_default
+    endpoint: unix:///var/run/docker.sock
+    exposedByDefault: false
+  file: 
+    filename: '/etc/traefik/traefik_dynamic.yml'
+
+certificatesResolvers: 
+  smallstep:
+    acme: 
+      caServer: 'https://root-ca.castle:9000/acme/acme/directory'
+      storage: 'acme.json'
+      httpChallenge: 
+        entryPoint: web

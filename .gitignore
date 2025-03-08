@@ -1,3 +1,5 @@
 *.backup.*
 .idea/
 .env
+*local*
+volumes/containers.conf

@@ -3,7 +3,6 @@ name: sandcastles
 
 services:
   root-ca:
-    container_name: root_ca.castle
     image: smallstep/step-ca:0.27.1
     environment:
       - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
@@ -15,6 +14,4 @@ services:
       - "9000:9000"
     networks:
       default:
-        aliases:
-          - root-ca.castle
     restart: unless-stopped
