@@ -13,10 +13,12 @@ bundle exec rake db:migrate
 sleep 1
 
 # create the initial user account
-tootctl accounts create "${MASTODON_ADMIN_ACCOUNT:-castle_mastodon}" \
+tootctl accounts create "${MASTODON_ADMIN_ACCOUNT:=castle_mastodon}" \
   --email "${MASTODON_ADMIN_EMAIL:-castle@mastodon.castle}" \
   --confirmed \
   --role=Owner
+
+tootctl accounts approve "${MASTODON_ADMIN_ACCOUNT}"
 
 # set the user password to a known value
 echo "user = User.find(1)
