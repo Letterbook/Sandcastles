@@ -15,6 +15,16 @@ This provides a root certificate authority which can issue SSL certificates to a
 ## Traefik Reverse Proxy
 Traefik serves as a reverse proxy, handling *all* of the federated traffick between services. It does this so that it can also manage their SSL certificates and connections. Traefik will automatically request or renew the certificates from Smallstep.
 
+# Available Services
+
+- [x] Mastodon (v4.3.4)
+- [x] Letterbook (development source build)
+- [ ] GoToSocial (#9)
+- [ ] Sharkey (#8)
+- [ ] Akkoma
+- [ ] Iceshrimp.NET
+- [ ] NodeBB
+
 # Getting Started
 
 ## Prerequisites

@@ -1,0 +1,92 @@
+# must be used as an overlay for the main docker-compose file. Ex
+# docker-compose -f docker-compose.yml -f letterbook.compose.yml up
+
+### NOTICE ##
+#
+# Letterbook is not a typical sandcastle component, because it doesn't have any stable releases, yet. It's included here
+# as a development convenience, to make it easier to build and run the app from source, in the sandcastle environment.
+#
+# To do so, you must have a local clone of the source code, you must add it to a local `.env` file
+# as the LETTERBOOK_REPO var. Ex:
+# LETTERBOOK_REPO=/path/to/letterbook
+
+# defaults
+# handle: admin
+# login: admin@letterbook.example
+# password: Password1!
+
+services:
+  letterbook:
+    labels:
+      - traefik.http.routers.letterbook.rule=Host(`letterbook.castle`)
+      - traefik.http.routers.letterbook.tls=true
+      - traefik.http.routers.letterbook.tls.certresolver=smallstep
+      - traefik.http.services.letterbook-sandcastles.loadBalancer.healthCheck.path=/healthz
+      - traefik.port=5127
+      - traefik.enable=true
+      - traefik.docker.network=sandcastles_letterbook
+    image: localhost/sandcastles/letterbook:latest
+    build:
+      dockerfile: ./letterbook.Dockerfile
+      tags:
+        - localhost/sandcastles/letterbook:latest
+    command: dotnet run --project Source/Letterbook/Letterbook.csproj -c Debug --launch-profile sandcastle
+    environment:
+      ASPNETCORE_ENVIRONMENT: Sandcastle
+      OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo:4317'
+    volumes:
+      - 'letterbook_nuget_cache:/root/.nuget/packages/'
+      - 'letterbook_build_cache:/app/artifacts/'
+      - '${LETTERBOOK_REPO}Source:/app/Source:z'
+      - '${LETTERBOOK_REPO}Letterbook.sln:/app/Letterbook.sln:z'
+      - '${LETTERBOOK_REPO}Directory.Build.props:/app/Directory.Build.props:z'
+      - '${LETTERBOOK_REPO}Directory.Packages.props:/app/Directory.Packages.props:z'
+    ports:
+      - '2982:5127'
+      - '5127:5127'
+    networks:
+      - default
+      - letterbook
+    healthcheck:
+      test: curl -sS --fail-with-body localhost:5127/healthz
+      interval: 2s
+      timeout: 1s
+      retries: 10
+    depends_on:
+      letterbook_db:
+        condition: service_healthy
+
+  letterbook_db:
+    image: timescale/timescaledb:2.17.2-pg15-oss
+    environment:
+      - POSTGRES_USER=letterbook
+      - POSTGRES_PASSWORD=letterbookpw
+      - POSTGRES_DB=letterbook
+    volumes:
+      - letterbook_db_data:/var/lib/postgresql/data
+    networks:
+      - letterbook
+    healthcheck:
+      test: pg_isready -d letterbook -U postgres
+      interval: 2s
+      timeout: 1s
+      retries: 10
+    restart: always
+
+  
+
+  proxy:
+    networks:
+      default:
+        aliases:
+          - letterbook.castle
+      letterbook: {}
+
+networks:
+  letterbook:
+  default:
+
+volumes:
+  letterbook_db_data:
+  letterbook_nuget_cache:
+  letterbook_build_cache:
