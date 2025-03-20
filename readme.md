@@ -4,7 +4,7 @@
 > When she smiles at you and she helps you build  
 > Castles in the sand
 
-The Letterbook Sandcastles project offers an integration and federation test sandbox for developers of fediverse software. The goal is to make it easy to set up local instances of most fediverse servers, which can all federate with each other, with minimal necessary configuration. This includes your own software, running on your local machine.
+The Letterbook Sandcastles project offers an integration and federation test sandbox for developers of fediverse software. The goal is to make it easy to set up local instances of most fediverse servers, which can all federate with each other, with minimal necessary configuration. The whole environment is meant to be entirely local and self-contained. It doesn't require you to buy a domain name, or host any services exposed to the internet. You can also run your own under-development software without much difficulty, as long as you can run it in a docker container.
 
 # How it Works
 This is accomplished by running them all in a docker compose project, along with some supporting infrastructure to provision and use SSL certificates.
@@ -33,7 +33,30 @@ You will need a docker run time and a docker client that supports docker compose
 
 You may also want to [install the `step cli`](https://smallstep.com/docs/step-cli/installation/). This isn't strictly necessary, but it will make it a lot easier to manage your certificates, and to add your new internal root CA as a trusted CA on your local computer.
 
+## Quickstart
+
+If you just want to get up and running as quickly as possible, this is the process:
+
+```shell
+git clone https://github.com/Letterbook/Sandcastles.git
+cd Sandcastles
+./castle bootstrap
+./castle build --all
+./castle up --all
+# At this point, all of the available services should be running. Or, at
+# least initializing, and they'll be up soon. You can interact with them
+# and exchange federated messages, check their logs, and do any other
+# testing you want.
+```
+
+And when you're done, shut it all down:
+```shell
+./castle down --all
+```
+
 ## Steps
+
+Read on for a more detailed discussion of using sandcastles, what the scripts are doing, and how it works.
 
 ### 1. Clone this repo
 ```shell
@@ -45,14 +68,17 @@ cd Sandcastles
 
 You can use the provided `castle` script to perform most actions with the project. It _should_ work with most common shells, but was made in `bash`. It also _should_ work in linux, mac, and windows (under WSL). But, it was made in a linux environment. If you want to inspect what `castle` will do before you execute it, there is a `--dry-run` flag you can use for that.
 
-The `bootstrap` command normally only needs to be run once, unless you need to regenerate your private keys for the internal sandcastles CA.
+One of the core functions of the Sandcastles project is to automatically provision trusted TLS certificates and https endpoints for all the fediverse services the project manages. To accomplish this offline, we need to run our own internal certificate authority, so that we can issue certificates to our services for their internal hostnames. Bootstrapping initializes that internal CA, and makes it's root certificate available so other services can be set up to trust it. The `bootstrap` command normally only needs to be run once, unless you need to regenerate your private keys for the internal sandcastles CA. 
 ```shell
 ./castle bootstrap
 ```
 
-You should build the container images before first use. This is necessary if you're running on `podman`. If you're using `docker`, it's still a good idea. You may need to rebuild your container images periodically, to receive updates or test your changes.
+> [!Tip]
+> For all commands other than bootstrap, you can specify individual services to manage, or use the `--all` flag to cover all of them.
+
+We have to build our own container images so that we can add our own trusted certificate authority. In most cases, that's the only modification we need to make to the container images that projects provide. You should build the container images before first use. This is necessary if you're running on `podman`. If you're using `docker`, it's still a good idea. You may need to rebuild your container images periodically, to receive updates or test your changes.
 ```shell
-./castle build mastodon --required
+./castle build --all
 ```
 
 Then you can run and interact with the apps.
@@ -66,14 +92,17 @@ Check the help for more details.
 
 ```shell
 ./castle help
+./castle up --help
+# etc
 ```
 
+### Alternative, bootstrap and run manually
 <details>
   <summary>
-      <h3>Bootstrap and run without using the `castle` script</h3>
+      Steps
   </summary>
 
-If for some reason you can't use the 
+If for some reason you can't use the `castle` CLI, you can run all of the necessary steps yourself.
 
 ### 2b. Initialize the internal root CA
 ```shell
@@ -140,7 +169,7 @@ At this point, you have a functioning sandbox full of fedi services that can all
 </details>
 
 ### Add .castle domains to your local hosts file (Optional)  
-Each of the castles provided by this project is configured to serve from it's own .castle domain (ie. mastodon.castle, letterbook.castle, etc). To interact (and federate) with them from your host (outside of any docker container) you should add these to your system's hosts file.
+Each of the components provided by this project is configured to serve from it's own .castle domain (ie. mastodon.castle, letterbook.castle, etc). To interact with them from your host (outside of any docker container) you should add these to your system's hosts file.
 ```ini
 # C:\Windows\System32\drivers\etc\hosts
 # OR
@@ -151,8 +180,14 @@ Each of the castles provided by this project is configured to serve from it's ow
 #etc
 ```
 
+They'll all be available on port `8443`
+
 ### Add your internal CA as a trusted CA on your host (Optional)  
-This requires having the [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/) installed on your host machine. After this step, your computer will trust SSL certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. This is a mild security risk. In step 1, you generated a private key to be used by this CA to sign those SSL certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. Keep that key safe.
+
+> [!Warning]
+> This is a security risk, if your CA's private key is ever compromised
+
+This requires having the [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/) installed on your host machine. After this step, your computer will trust TLS certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. In the bootstrapping step, you generated a private key to be used by this CA to sign those TLS certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. This means another server with access to that key could impersonate other services, like gmail or banks. Keep that key safe.
 ```shell
 step certificate install --all volumes/root-ca/certs/root_ca.crt
 ```
@@ -176,3 +211,21 @@ step certificate uninstall --all volumes/root-ca/certs/root_ca.crt
 Please contribute! There's so much fedi software out there! If you build or host some sort of fedi server, it would be so helpful for you to share some configurations that make it easy to spin up a test instance of that software in the sandbox. In the absence of a reference implementation or a test suite, this kind of integration sandbox might be our best resource for building new apps and improving cross-app federation support.
 
 I no longer have ready access to a Windows machine. I'll do what I can to maintain Windows compatibility, but help is appreciated.
+
+## Adding New Backends
+
+There's usually two components to adding a new backend component to the sandcastle environment: a dockerfile, and a docker compose file. They must be named with the same prefix, because the `castle` CLI will naively search for and use them by file name. If a project requires multiple images to send messages to peer services, they will each need a dockerfile, so that they can be configured to trust the internal CA. In that case, you can append a suffix to the names of other necessary dockerfiles, like `my_service.Dockerfile` and `my_service-worker.Dockerfile`.
+
+The docker compose file must provide additional configuration to the central Traefik proxy, in order to make the server accessible to peer services. This comes in the form of container labels that will configure routing, and a network alias that will configure internal DNS.
+
+The `castle` CLI includes a `new` command that will scaffold these necessary files. For example:
+
+```shell
+./castle new my_serice
+```
+
+From there, you can customize the generated Dockerfile and compose.yml files. If you think any new components you add would be generally useful to other developers, please consider submitting them in a PR!
+
+### Contributing New Components
+
+One of the goals for this project to have as close to zero required configuration as possible. The intent is to let developers interact with federated peer software. We don't want to force them to become experts in each of those project's operational quirks. So, new backend components should self-initialize as much as possible. If the app requires any migrations, secrets, or configuration, that should be included, with useful defaults. If at all possible, you should also provide a default user and password, so that developers can quickly log in and start generating test federated messages to examine.
