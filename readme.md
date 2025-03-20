@@ -43,9 +43,14 @@ cd Sandcastles
 ./castle bootstrap
 ./castle build --all
 ./castle up --all
-# At this point, all of the available services should be running. Or, at least initializing, and they'll be up soon.
-# You can interact with them and exchange federated messages, check their logs, and do any other testing you want.
-# And when you're done, shut it all down:
+# At this point, all of the available services should be running. Or, at
+# least initializing, and they'll be up soon. You can interact with them
+# and exchange federated messages, check their logs, and do any other
+# testing you want.
+```
+
+And when you're done, shut it all down:
+```shell
 ./castle down --all
 ```
 
@@ -68,7 +73,7 @@ One of the core functions of the Sandcastles project is to automatically provisi
 ./castle bootstrap
 ```
 
-> [!Note]
+> [!Tip]
 > For all commands other than bootstrap, you can specify individual services to manage, or use the `--all` flag to cover all of them.
 
 We have to build our own container images so that we can add our own trusted certificate authority. In most cases, that's the only modification we need to make to the container images that projects provide. You should build the container images before first use. This is necessary if you're running on `podman`. If you're using `docker`, it's still a good idea. You may need to rebuild your container images periodically, to receive updates or test your changes.
@@ -178,7 +183,11 @@ Each of the components provided by this project is configured to serve from it's
 They'll all be available on port `8443`
 
 ### Add your internal CA as a trusted CA on your host (Optional)  
-This requires having the [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/) installed on your host machine. After this step, your computer will trust SSL certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. This is a mild security risk. In step 1, you generated a private key to be used by this CA to sign those SSL certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. This means another server with access to that key could impersonate other services, like gmail or banks. Keep that key safe.
+
+> [!Warning]
+> This is a security risk, if your CA's private key is ever compromised
+
+This requires having the [`step` cli](https://smallstep.com/docs/step-cli/reference/certificate/) installed on your host machine. After this step, your computer will trust TLS certificates issued by your internal sandcastles CA, just like it was a well known certificate authority like Verisign or Let's Encrypt. In the bootstrapping step, you generated a private key to be used by this CA to sign those TLS certificates. Anyone with access to that key can issue certificates that your computer will trust, even if they're fraudulent. This means another server with access to that key could impersonate other services, like gmail or banks. Keep that key safe.
 ```shell
 step certificate install --all volumes/root-ca/certs/root_ca.crt
 ```
