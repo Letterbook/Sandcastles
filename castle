@@ -211,9 +211,8 @@ case $opt_action in
   ;;
 
   down )
-    compose_files=()
+    compose_files=("-f" "$DIR/docker-compose.yml")
     if [ "$opt_all" = "true" ]; then
-      compose_files+=("-f" "$DIR/docker-compose.yml")
       all_files=$(find "$DIR" -type f -name "*.compose.yml")
       for n in ${all_files[*]}; do compose_files+=("-f" "$n"); done 
     else
