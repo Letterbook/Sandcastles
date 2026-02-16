@@ -1,6 +1,6 @@
 FROM docker.io/smallstep/step-cli:0.25.0 AS step-cli
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0
+FROM mcr.microsoft.com/dotnet/sdk:9.0
 
 USER root
 

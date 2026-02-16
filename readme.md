@@ -54,6 +54,10 @@ And when you're done, shut it all down:
 ./castle down --all
 ```
 
+## Troubleshooting
+
+I've tried to make this as automatic as possible, but it does depend a lot on the details of your local host. Check the [troubleshooting guide](./troubleshooting.md), and feel free to open an issue if that doesn't help.
+
 ## Steps
 
 Read on for a more detailed discussion of using sandcastles, what the scripts are doing, and how it works.

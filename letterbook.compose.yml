@@ -67,7 +67,7 @@ services:
     networks:
       - letterbook
     healthcheck:
-      test: pg_isready -d letterbook -U postgres
+      test: pg_isready -d letterbook -U letterbook
       interval: 2s
       timeout: 1s
       retries: 10
