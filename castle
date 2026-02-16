@@ -168,6 +168,7 @@ case $opt_action in
     if [ "$env_runtime" = "podman" ]; then
       CONTAINERS_CONF_OVERRIDE="$DIR/volumes/containers.conf"
       export CONTAINERS_CONF_OVERRIDE
+      verbose "CONTAINERS_CONF_OVERRIDE=$CONTAINERS_CONF_OVERRIDE"
     fi
     run "compose up" "${cmd_args[@]}"
   ;;
