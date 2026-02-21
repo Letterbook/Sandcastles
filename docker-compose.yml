@@ -34,6 +34,7 @@ services:
     image: docker.io/smallstep/step-ca:0.27.1
     volumes:
       - './volumes/root-ca:/home/step:z'
+      - 'step_data_db:/home/step/db'
     environment:
       - DOCKER_STEPCA_INIT_NAME=Letterbook Sandcastles
       - DOCKER_STEPCA_INIT_DNS_NAMES=root-ca.castle,root-ca,localhost
@@ -61,5 +62,8 @@ services:
       default:
     restart: unless-stopped
 
+volumes:
+  step_data_db:
+    driver: local
 networks:
   default:

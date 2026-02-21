@@ -237,7 +237,6 @@ case $opt_action in
     run "extract private key for sandcastles internal CA" \
       "$env_runtime" "cp" "$container_id:/home/step/templates" "$DIR/volumes/root-ca/"
     run "..." "$env_runtime" "cp" "$container_id:/home/step/secrets" "$DIR/volumes/root-ca/"
-    run "..." "$env_runtime" "cp" "$container_id:/home/step/db" "$DIR/volumes/root-ca/"
     run "..." "$env_runtime" "cp" "$container_id:/home/step/certs" "$DIR/volumes/root-ca/"
     run "..." "$env_runtime" "compose" "-f" "bootstrap.yml" "down"
     

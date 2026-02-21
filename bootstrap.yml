@@ -12,6 +12,11 @@ services:
       - DOCKER_STEPCA_INIT_PASSWORD=capassword
     ports:
       - "9000:9000"
+    volumes:
+      - 'step_data_db:/home/step/db'
     networks:
       default:
     restart: unless-stopped
+volumes:
+  step_data_db:
+    driver: local
