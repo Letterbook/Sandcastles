@@ -14,7 +14,7 @@
 # None. Create an account with the generated invite code that was printed to the logs
 #
 # If you lost those logs, you can get the code from the database:
-# docker exec sandcastles-letterbook_db-1 psql -U letterbook -d letterbook -c 'SELECT "Code" FROM "InviteCodes";'
+# docker compose -f letterbook.compose.yml exec letterbook_db psql -U letterbook -d letterbook -c 'SELECT "Code" FROM "InviteCodes";'
 
 services:
   letterbook:
