@@ -11,9 +11,10 @@
 # LETTERBOOK_REPO=/path/to/letterbook
 
 # defaults
-# handle: admin
-# login: admin@letterbook.example
-# password: Password1!
+# None. Create an account with the generated invite code that was printed to the logs
+#
+# If you lost those logs, you can get the code from the database:
+# docker exec sandcastles-letterbook_db-1 psql -U letterbook -d letterbook -c 'SELECT "Code" FROM "InviteCodes";'
 
 services:
   letterbook:
@@ -30,17 +31,19 @@ services:
       dockerfile: ./letterbook.Dockerfile
       tags:
         - localhost/sandcastles/letterbook:latest
-    command: dotnet run --project Source/Letterbook/Letterbook.csproj -c Debug --launch-profile sandcastle
+    command: ./start.sh
     environment:
       ASPNETCORE_ENVIRONMENT: Sandcastle
       OTEL_EXPORTER_OTLP_ENDPOINT: 'http://tempo:4317'
     volumes:
       - 'letterbook_nuget_cache:/root/.nuget/packages/'
       - 'letterbook_build_cache:/app/artifacts/'
-      - '${LETTERBOOK_REPO}Source:/app/Source:z'
-      - '${LETTERBOOK_REPO}Letterbook.sln:/app/Letterbook.sln:z'
-      - '${LETTERBOOK_REPO}Directory.Build.props:/app/Directory.Build.props:z'
-      - '${LETTERBOOK_REPO}Directory.Packages.props:/app/Directory.Packages.props:z'
+      - '${LETTERBOOK_REPO}/Source:/app/Source:z'
+      - '${LETTERBOOK_REPO}/.config:/app/.config:z'
+      - '${LETTERBOOK_REPO}/Letterbook.sln:/app/Letterbook.sln:z'
+      - '${LETTERBOOK_REPO}/Directory.Build.props:/app/Directory.Build.props:z'
+      - '${LETTERBOOK_REPO}/Directory.Packages.props:/app/Directory.Packages.props:z'
+      - './volumes/letterbook/start.sh:/app/start.sh:z'
     ports:
       - '2982:5127'
       - '5127:5127'

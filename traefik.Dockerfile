@@ -1,4 +1,4 @@
-FROM docker.io/traefik:v3.3
+FROM docker.io/traefik:v3.6
 
 COPY volumes/root-ca/certs/root_ca.crt /usr/local/share/ca-certificates/root_ca.crt
 
